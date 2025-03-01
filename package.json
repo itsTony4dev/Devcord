@@ -1,0 +1,31 @@
+{
+  "name": "devcord",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": [
+    "express",
+    "socket.io",
+    "real-time",
+    "chat"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "A real-time messaging application built with Express.js and Socket.IO",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^7.1.0",
+    "mongoose": "^8.11.0",
+    "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
