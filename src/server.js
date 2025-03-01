@@ -7,6 +7,8 @@ import helmet from 'helmet';
 import errorHandler from './api/middleware/errorHandler.js'
 import connectDB from './config/database.js';
 
+import authRouter from './api/routes/auth.router.js';
+
 
 const app = express();
 
@@ -20,6 +22,7 @@ app.use(helmet());
 
 //Routes
 app.use('/api/v1', require('./api/routes/v1'));
+app.use('api/auth/', authRouter);
 
 
 //Health Check
