@@ -2,7 +2,7 @@ import 'dotenv/config'
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-import User from "../../models/User.js";
+import User from "./user.model.js";
 import { generateToken } from "../../utils/generateToken.js";
 import transporter from "../../utils/transporter.js";
 import generateEmailVerification from "../../utils/generateEmailVerification.js";
