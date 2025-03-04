@@ -12,10 +12,10 @@ export const signup = async (req, res) => {
     const { username, password, confirmPassword, email } =
       req.body;
     if (
-      username.trim() == "" ||
-      password.trim() == "" ||
-      confirmPassword.trim() == "" ||
-      email.trim() == ""
+      username?.trim() == "" ||
+      password?.trim() == "" ||
+      confirmPassword?.trim() == "" ||
+      email?.trim() == ""
     ) {
       return res.status(400).json({ message: "All fields are required" });
     }

@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema({
   username: {
     type: String,
-    required: true
+    required: true,
+    index: true
   },
   email: {
     type: String,
@@ -14,7 +15,8 @@ const userSchema = new mongoose.Schema({
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
       },
       message: "Invalid email format."
-    }
+    },
+    index: true
   },
   password: {
     type: String,
@@ -75,8 +77,6 @@ const userSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-userSchema.index({ email: 1 }, { unique: true });
-userSchema.index({ username: 1 });
 
 const User = mongoose.model("User", userSchema);
 

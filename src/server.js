@@ -9,7 +9,6 @@ import connectDB from './config/database.js';
 
 import authRouter from './api/users/auth.router.js';
 
-
 const app = express();
 
 
@@ -21,7 +20,7 @@ app.use(helmet());
 
 
 //Routes
-app.use('api/auth/', authRouter);
+app.use('/api/auth', authRouter);
 
 
 //Health Check
