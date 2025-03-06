@@ -1,11 +1,16 @@
 import 'dotenv/config'
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import path from "path"
+import { fileURLToPath } from "url";
 
 import User from "./user.model.js";
 import { generateToken } from "../../utils/generateToken.js";
 import transporter from "../../utils/transporter.js";
 import generateEmailVerification from "../../utils/generateEmailVerification.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const signup = async (req, res) => {
   try {
@@ -57,7 +62,7 @@ export const signup = async (req, res) => {
       expiresIn: "24h",
     });
 
-    const url = `http://${process.env.HOST}:${process.env.PORT}/api/auth/verify/${token}`;
+    const url = `http://localhost:3001/api/auth/verify/${token}`;
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -93,9 +98,9 @@ export const signin = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    if (!user.isVerified) {
-      return res.status(400).json({ message: "Email not verified" });
-    }
+    // if (!user.isVerified) {
+    //   return res.status(400).json({ message: "Email not verified" });
+    // }
 
     generateToken(user._id, res);
 
@@ -129,23 +134,43 @@ export const signout = (_req, res) => {
 export const verifyEmail = async (req, res) => {
   try {
     const { token } = req.params;
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded) {
-      return res.status(400).json({ message: "Invalid token" });
+    
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      return res.sendFile(
+        path.join(__dirname, '..', '..', 'public', 'verification-error.html'),
+        { query: { message: 'Invalid or expired verification link' } }
+      );
     }
+
     const user = await User.findById(decoded.userId);
     if (!user) {
-      return res.status(400).json({ message: "User not found" });
+      return res.sendFile(
+        path.join(__dirname, '..', '..', 'public', 'verification-error.html'),
+        { query: { message: 'User not found' } }
+      );
     }
+
     if (user.isVerified) {
-      return res.status(400).json({ message: "Email already verified" });
+      return res.sendFile(
+        path.join(__dirname, '..', '..', 'public', 'already-verified.html')
+      );
     }
+
     user.isVerified = true;
     await user.save();
-    return res.status(200).json({ message: "Email verified successfully" });
+
+    return res.sendFile(
+      path.join(__dirname, '..', '..', 'public', 'verification-success.html')
+    );
   } catch (error) {
     console.log("Error in verifyEmail controller: ", error.message);
-    res.status(500).json({ message: "Internal Server Error" });
+    return res.sendFile(
+      path.join(__dirname, '..', '..', 'public', 'verification-error.html'),
+      { query: { message: 'An error occurred during verification' } }
+    );
   }
 };
 

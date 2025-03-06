@@ -3,7 +3,6 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 
-
 import errorHandler from './middleware/errorHandler.js'
 import connectDB from './config/database.js';
 
