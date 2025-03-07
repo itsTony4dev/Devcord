@@ -275,7 +275,7 @@ export const forgotPassword = async (req, res) => {
     });
 
     res.status(200).json(standardResponse);
-
+    res.redirect(`http://${process.env.FRONTEND_URL}/reset-password`);
   } catch (error) {
     console.log("Error in forgotPassword controller: ", error.message);
     res.status(500).json({success: false, message: "Internal Server Error" });
@@ -353,3 +353,24 @@ export const resetPassword = async (req, res) => {
   }
 };
 
+export const resetRedirect = async (req, res) => {
+  try {
+    const { token } = req.query;
+    
+    if (!token) {
+      return res.status(400).send("Token is missing");
+    }
+    
+    try {
+      jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      return res.status(400).send("Invalid or expired token");
+    }
+    
+    return res.redirect(`${process.env.FRONTEND_URL}/reset-password`);
+    
+  } catch (error) {
+    console.log("Error in reset redirect: ", error.message);
+    return res.status(500).send("Server error");
+  }
+}
