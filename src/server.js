@@ -3,43 +3,51 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 
-import errorHandler from './middleware/errorHandler.js'
+import errorHandler from './middleware/errorHandler.js';
 import connectDB from './config/database.js';
 
 import authRouter from './api/users/auth.router.js';
 
 const app = express();
 
-
-//Middleware
+// Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cors());
 app.use(helmet());
 
-
-//Routes
+// Routes
 app.use('/api/auth', authRouter);
 
-
-//Health Check
+// Health Check
 app.get('/health', (_req, res) => {
   res.status(200).send('Healthy');
 });
 
-//Error Handler
+// Error Handler
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, async () => {
+
+// Start server
+const server = app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
   connectDB();
-})
+});
 
+// Graceful shutdown
 process.on('SIGTERM', () => {
-  app.close(() => {
-      console.log("Server closed");
-      process.exit(0);
+  console.log("SIGTERM received. Closing server...");
+  server.close(() => {
+    console.log("Server closed.");
+    process.exit(0);
   });
 });
 
+process.on('SIGINT', () => {
+  console.log("SIGINT received (Ctrl+C). Closing server...");
+  server.close(() => {
+    console.log("Server closed.");
+    process.exit(0);
+  });
+});
