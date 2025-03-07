@@ -9,7 +9,7 @@ const generatePasswordResetRequest = (username, url) => {
         <table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center" style="margin-top: 20px;">
           <tr>
             <td align="center" bgcolor="#007bff" style="border-radius: 5px;">
-              <a href="http://localhost:5173/login" target="_blank" 
+              <a href="${url}" target="_blank" 
                 style="display: inline-block; padding: 12px 20px; font-size: 16px; color: #ffffff; background-color: #007bff; text-decoration: none; border-radius: 5px; font-weight: bold;">
                 Change My Password
               </a>
