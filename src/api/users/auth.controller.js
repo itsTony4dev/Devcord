@@ -64,7 +64,7 @@ export const signup = async (req, res) => {
       expiresIn: "24h",
     });
 
-    const url = `http://localhost:3001/api/auth/verify/${token}`;
+    const url = `http://localhost:${process.env.PORT}/api/auth/verify/${token}`;
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
