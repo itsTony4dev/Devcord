@@ -35,3 +35,11 @@ app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
   connectDB();
 })
+
+process.on('SIGTERM', () => {
+  server.close(() => {
+      console.log("Server closed");
+      process.exit(0);
+  });
+});
+

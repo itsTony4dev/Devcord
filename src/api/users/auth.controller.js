@@ -8,6 +8,7 @@ import User from "./user.model.js";
 import { generateToken } from "../../utils/generateToken.js";
 import transporter from "../../utils/transporter.js";
 import generateEmailVerification from "../../utils/generateEmailVerification.js";
+import generatePasswordResetConfirmation from "../../utils/generatePasswordResetConfirmation.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -98,9 +99,9 @@ export const signin = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // if (!user.isVerified) {
-    //   return res.status(400).json({ message: "Email not verified" });
-    // }
+    if (!user.isVerified) {
+    return res.status(400).json({ message: "Email not verified" });
+    }
 
     generateToken(user._id, res);
 
@@ -134,7 +135,7 @@ export const signout = (_req, res) => {
 export const verifyEmail = async (req, res) => {
   try {
     const { token } = req.params;
-    
+
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -205,3 +206,105 @@ export const resendVerificationEmail = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || !email.trim()) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const standardResponse = {
+      message: "If an account with that email exists, a password reset link has been sent"
+    };
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(200).json(standardResponse);
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        purpose: 'password-reset'
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    const resetUrl = `http://localhost:8000/api/auth/reset-password/${token}`;
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Password Reset",
+      html: generatePasswordReset(user.username, resetUrl),
+    });
+
+    res.status(200).json(standardResponse);
+
+  } catch (error) {
+    console.log("Error in forgotPassword controller: ", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password, confirmPassword } = req.body;
+
+    if (!password || !password.trim()) {
+      return res.status(400).json({ message: "New password is required" });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      if (error.name === "TokenExpiredError") {
+        return res.status(400).json({ message: "Reset link has expired" });
+      }
+      return res.status(400).json({ message: "Invalid reset link" });
+    }
+
+    if (!decoded.purpose || decoded.purpose !== 'password-reset') {
+      return res.status(400).json({ message: "Invalid reset link" });
+    }
+
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    user.password = hashedPassword;
+    user.passwordChangedAt = new Date();
+    await user.save();
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Password Reset Successful",
+      html: generatePasswordResetConfirmation(user.username),
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Password has been reset successfully. You can now log in with your new password."
+    });
+
+  } catch (error) {
+    console.log("Error in resetPassword controller: ", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
