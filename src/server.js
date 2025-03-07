@@ -37,7 +37,7 @@ app.listen(PORT, async () => {
 })
 
 process.on('SIGTERM', () => {
-  server.close(() => {
+  app.close(() => {
       console.log("Server closed");
       process.exit(0);
   });
