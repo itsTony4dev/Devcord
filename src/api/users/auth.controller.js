@@ -23,20 +23,20 @@ export const signup = async (req, res) => {
       confirmPassword?.trim() == "" ||
       email?.trim() == ""
     ) {
-      return res.status(400).json({ message: "All fields are required" });
+      return res.status(400).json({success:false, message: "All fields are required" });
     }
     if (password !== confirmPassword) {
-      return res.status(400).json({ message: "Passwords do not match" });
+      return res.status(400).json({success:false, message: "Passwords do not match" });
     }
 
     const existingEmail = await User.findOne({ email });
     if (existingEmail) {
-      return res.status(400).json({ message: "Email already exists" });
+      return res.status(400).json({success:false, message: "Email already exists" });
     }
 
     const existingUsername = await User.findOne({ username });
     if (existingUsername) {
-      return res.status(400).json({ message: "Username must be unique" });
+      return res.status(400).json({success:false, message: "Username must be unique" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -44,7 +44,7 @@ export const signup = async (req, res) => {
     //Email validation
     const emailRegex = /\S+@\S+\.\S+/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: "Email is not valid" });
+      return res.status(400).json({success:false, message: "Email is not valid" });
     }
 
     const user = await User.create({
@@ -56,7 +56,7 @@ export const signup = async (req, res) => {
     if (!user) {
       return res
         .status(400)
-        .json({ message: "Something went wrong! Please try again later." });
+        .json({success:false, message: "Something went wrong! Please try again later." });
     }
     //Email verification process
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
@@ -73,11 +73,12 @@ export const signup = async (req, res) => {
     });
 
     res.status(201).json({
+      success: true,
       message: "Registration successful. Check your email for verification.",
     });
   } catch (error) {
     console.log("Error in signup controller: ", error.message);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({success:false, message: "Internal Server Error" });
   }
 };
 
@@ -85,10 +86,10 @@ export const signin = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email.trim()) {
-      return res.status(400).json({ message: "Email or username is required" });
+      return res.status(400).json({success:false, message: "Email or username is required" });
     }
     if (!password.trim()) {
-      return res.status(400).json({ message: "Password is required" });
+      return res.status(400).json({success:false, message: "Password is required" });
     }
     const user = await User.findOne({ email });
     const isPasswordValid = await bcrypt.compare(
@@ -96,16 +97,17 @@ export const signin = async (req, res) => {
       user?.password || ""
     );
     if (!user || !isPasswordValid) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({success:false, message: "Invalid credentials" });
     }
 
     if (!user.isVerified) {
-    return res.status(400).json({ message: "Email not verified" });
+    return res.status(400).json({success:false, message: "Email not verified" });
     }
 
     generateToken(user._id, res);
 
     return res.status(200).json({
+      success: true,
       message: "User signed in successfully",
       data: {
         username: user.username,
@@ -114,7 +116,7 @@ export const signin = async (req, res) => {
     });
   } catch (error) {
     console.log("Error in signin controller: ", error.message);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({success:false, message: "Internal Server Error" });
   }
 };
 
@@ -125,10 +127,10 @@ export const signout = (_req, res) => {
       secure: process.env.NODE_ENV !== "development",
       sameSite: "strict",
     });
-    return res.status(200).json({ message: "User signed out successfully" });
+    return res.status(200).json({success:true, message: "User signed out successfully" });
   } catch (error) {
     console.log("Error in signout controller: ", error.message);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({success:false, message: "Internal Server Error" });
   }
 };
 
@@ -179,14 +181,14 @@ export const resendVerificationEmail = async (req, res) => {
   try {
     const { email } = req.body;
     if (!email.trim()) {
-      return res.status(400).json({ message: "Email is required" });
+      return res.status(400).json({success:false, message: "Email is required" });
     }
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "User not found" });
+      return res.status(400).json({success:false, message: "User not found" });
     }
     if (user.isVerified) {
-      return res.status(400).json({ message: "Email already verified" });
+      return res.status(400).json({success:false, message: "Email already verified" });
     }
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1d",
@@ -199,11 +201,12 @@ export const resendVerificationEmail = async (req, res) => {
       html: generateEmailVerification(user.username, url),
     });
     res.status(200).json({
+      success: true,
       message: "A verification has been sent to your email",
     });
   } catch (error) {
     console.log("Error in resendVerificationEmail controller: ", error.message);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({success:false, message: "Internal Server Error" });
   }
 };
 
@@ -216,7 +219,8 @@ export const forgotPassword = async (req, res) => {
     }
 
     const standardResponse = {
-      message: "If an account with that email exists, a password reset link has been sent"
+      success: true,
+      message: "A password reset link has been sent to your email",
     };
 
     const user = await User.findOne({ email });
@@ -246,7 +250,7 @@ export const forgotPassword = async (req, res) => {
 
   } catch (error) {
     console.log("Error in forgotPassword controller: ", error.message);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({success: false, message: "Internal Server Error" });
   }
 };
 
@@ -261,7 +265,9 @@ export const resetPassword = async (req, res) => {
     }
 
     if (password !== confirmPassword) {
-      return res.status(400).json({ message: "Passwords do not match" });
+      return res.status(400).json({
+        success: false,
+        message: "Passwords do not match" });
     }
 
     let decoded;
@@ -269,26 +275,34 @@ export const resetPassword = async (req, res) => {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
     } catch (error) {
       if (error.name === "TokenExpiredError") {
-        return res.status(400).json({ message: "Reset link has expired" });
+        return res.status(400).json({ 
+          success: false,
+          message: "Reset link has expired" });
       }
       return res.status(400).json({ message: "Invalid reset link" });
     }
 
     if (!decoded.purpose || decoded.purpose !== 'password-reset') {
-      return res.status(400).json({ message: "Invalid reset link" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid reset link" });
     }
 
     const user = await User.findById(decoded.userId);
     if (!user) {
-      return res.status(400).json({ message: "User not found" });
+      return res.status(400).json({
+        success: false,
+        message: "User not found" });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    user.password = hashedPassword;
-    user.passwordChangedAt = new Date();
-    await user.save();
+     await User.findByIdAndUpdate( user._id,
+      {
+        password: hashedPassword
+      },
+      { new: true }
+    );
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -304,7 +318,10 @@ export const resetPassword = async (req, res) => {
 
   } catch (error) {
     console.log("Error in resetPassword controller: ", error.message);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error" 
+    });
   }
 };
 
