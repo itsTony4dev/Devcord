@@ -142,38 +142,65 @@ export const verifyEmail = async (req, res) => {
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
     } catch (error) {
-      return res.sendFile(
-        path.join(__dirname, '..', '..', 'public', 'verification-error.html'),
-        { query: { message: 'Invalid or expired verification link' } }
-      );
+      return res.render('verification', {
+        title: 'Email Verification Error',
+        message: 'Invalid or expired verification link',
+        icon: '✕',
+        iconClass: 'error',
+        buttonText: 'Back to Sign Up',
+        buttonLink: `${process.env.FRONTEND_URL}/signup`,
+        buttonClass: 'error-button'
+      });
     }
 
     const user = await User.findById(decoded.userId);
     if (!user) {
-      return res.sendFile(
-        path.join(__dirname, '..', '..', 'public', 'verification-error.html'),
-        { query: { message: 'User not found' } }
-      );
+      return res.render('verification', {
+        title: 'Email Verification Error',
+        message: 'User not found',
+        icon: '✕',
+        iconClass: 'error',
+        buttonText: 'Back to Sign Up',
+        buttonLink: `${process.env.FRONTEND_URL}/signup`,
+        buttonClass: 'error-button'
+      });
     }
 
     if (user.isVerified) {
-      return res.sendFile(
-        path.join(__dirname, '..', '..', 'public', 'already-verified.html')
-      );
+      return res.render('verification', {
+        title: 'Already Verified',
+        message: 'Your email has already been verified. You can proceed to login.',
+        icon: 'ℹ',
+        iconClass: 'info',
+        buttonText: 'Go to Login',
+        buttonLink: `${process.env.FRONTEND_URL}/login`,
+        buttonClass: 'info-button'
+      });
     }
 
     user.isVerified = true;
     await user.save();
 
-    return res.sendFile(
-      path.join(__dirname, '..', '..', 'public', 'verification-success.html')
-    );
+    return res.render('verification', {
+      title: 'Email Verified Successfully!',
+      message: 'Your email has been verified. You can now sign in to your account.',
+      icon: '✓',
+      iconClass: 'success',
+      buttonText: 'Go to Login',
+      buttonLink: `${process.env.FRONTEND_URL}/login`,
+      buttonClass: 'success-button'
+    });
   } catch (error) {
     console.log("Error in verifyEmail controller: ", error.message);
-    return res.sendFile(
-      path.join(__dirname, '..', '..', 'public', 'verification-error.html'),
-      { query: { message: 'An error occurred during verification' } }
-    );
+    return res.render('verification', {
+      title: 'Email Verification Error',
+      message: 'An error occurred during verification',
+      icon: '✕',
+      iconClass: 'error',
+      buttonText: 'Back to Sign Up',
+      buttonLink: `${process.env.FRONTEND_URL}/signup`,
+      buttonClass: 'error-button'
+    });
   }
 };
 

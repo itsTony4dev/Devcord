@@ -2,6 +2,11 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from "path"
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 import errorHandler from './middleware/errorHandler.js';
 import connectDB from './config/database.js';
@@ -10,7 +15,11 @@ import authRouter from './api/users/auth.router.js';
 
 const app = express();
 
+app.set("view engine", "ejs");
+app.set('views', path.join(__dirname, 'views'));
+
 // Middleware
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cors({
