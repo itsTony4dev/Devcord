@@ -265,8 +265,8 @@ export const forgotPassword = async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    const resetUrl = `http://localhost:8000/api/auth/reset-password/${token}`;
-
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`
+    
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
@@ -285,7 +285,7 @@ export const forgotPassword = async (req, res) => {
 
 export const resetPassword = async (req, res) => {
   try {
-    const { token } = req.params;
+    const { token } = req.query;
     const { password, confirmPassword } = req.body;
 
     if (!password || !password.trim()) {
