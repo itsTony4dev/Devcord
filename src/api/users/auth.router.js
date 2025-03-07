@@ -1,11 +1,5 @@
 import express from "express";
 const authRouter = express.Router();
-import path from "path"
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 import {
   signin,
   signout,
@@ -15,8 +9,6 @@ import {
   resetPassword,
   forgotPassword,
 } from "./auth.controller.js";
-
-authRouter.use('/public', express.static(path.join(__dirname, '..', 'public')));
 
 authRouter.route("/signup").post(signup);
 authRouter.route("/signin").post(signin);

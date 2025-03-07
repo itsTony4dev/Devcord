@@ -9,6 +9,7 @@ import { generateToken } from "../../utils/generateToken.js";
 import transporter from "../../utils/transporter.js";
 import generateEmailVerification from "../../utils/generateEmailVerification.js";
 import generatePasswordResetConfirmation from "../../utils/generatePasswordResetConfirmation.js";
+import generatePasswordResetRequest from '../../utils/generatePasswordReset.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -270,7 +271,7 @@ export const forgotPassword = async (req, res) => {
       from: process.env.EMAIL_USER,
       to: email,
       subject: "Password Reset",
-      html: generatePasswordReset(user.username, resetUrl),
+      html: generatePasswordResetRequest(user.username, resetUrl),
     });
 
     res.status(200).json(standardResponse);
