@@ -288,7 +288,7 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-export const resetRedirect = async (req, res) => {
+export const resetPassword = async (req, res) => {
   try {
     const { token } = req.query;
     
@@ -318,7 +318,7 @@ export const resetRedirect = async (req, res) => {
           icon: '✕',
           iconClass: 'error',
           buttonText: 'Request New Link',
-          buttonLink: '/forgot-password',
+          buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
           buttonClass: 'error-button'
         });
       }
@@ -335,7 +335,7 @@ export const resetRedirect = async (req, res) => {
         icon: '✕',
         iconClass: 'error',
         buttonText: 'Try Again',
-        buttonLink: '/forgot-password',
+        buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
         buttonClass: 'error-button'
       });
     }
@@ -347,13 +347,13 @@ export const resetRedirect = async (req, res) => {
       icon: '✕',
       iconClass: 'error',
       buttonText: 'Try Again',
-      buttonLink: '/forgot-password',
+      buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
       buttonClass: 'error-button'
     });
   }
 };
 
-export const resetPassword = async (req, res) => {
+export const changePassword = async (req, res) => {
   try {
     const { token, password, confirmPassword } = req.body;
 
