@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import path from "path"
 import { fileURLToPath } from "url";
+import crypto from "crypto";
 
 import User from "./user.model.js";
 import { generateToken } from "../../utils/generateToken.js";
@@ -13,6 +14,8 @@ import generatePasswordResetRequest from '../../utils/generatePasswordReset.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const usedTokens = new Set();
 
 export const signup = async (req, res) => {
   try {
@@ -256,15 +259,17 @@ export const forgotPassword = async (req, res) => {
       return res.status(200).json(standardResponse);
     }
 
+    const tokenId = crypto.randomBytes(32).toString('hex');
     const token = jwt.sign(
       {
         userId: user._id,
         username: user.username,
         email: user.email,
-        purpose: 'password-reset'
+        purpose: 'password-reset',
+        tokenId: tokenId
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "15m" }
     );
 
     const resetUrl = `http://localhost:${process.env.PORT}/api/auth/reset-password?token=${token}`;
@@ -306,6 +311,18 @@ export const resetRedirect = async (req, res) => {
         throw new Error('Invalid token purpose');
       }
 
+      if (usedTokens.has(decoded.tokenId)) {
+        return res.render('verification', {
+          title: 'Reset Password Error',
+          message: 'This reset link has already been used. Please request a new one.',
+          icon: '✕',
+          iconClass: 'error',
+          buttonText: 'Request New Link',
+          buttonLink: '/forgot-password',
+          buttonClass: 'error-button'
+        });
+      }
+
       return res.render('reset-password', { 
         username: decoded.username, 
         email: decoded.email,
@@ -340,13 +357,25 @@ export const resetPassword = async (req, res) => {
   try {
     const { token, password, confirmPassword } = req.body;
 
-    // Verify token first
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
       if (decoded.purpose !== 'password-reset') {
         throw new Error('Invalid token purpose');
       }
+
+      if (usedTokens.has(decoded.tokenId)) {
+        return res.render('verification', {
+          title: 'Reset Password Error',
+          message: 'This reset link has already been used. Please request a new one.',
+          icon: '✕',
+          iconClass: 'error',
+          buttonText: 'Request New Link',
+          buttonLink: '/forgot-password',
+          buttonClass: 'error-button'
+        });
+      }
+
     } catch (error) {
       return res.render('verification', {
         title: 'Reset Password Error',
@@ -403,6 +432,12 @@ export const resetPassword = async (req, res) => {
       { password: hashedPassword },
       { new: true }
     );
+
+    usedTokens.add(decoded.tokenId);
+
+    if (usedTokens.size > 1000) {
+      usedTokens.clear();
+    }
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
