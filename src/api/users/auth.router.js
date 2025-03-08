@@ -17,7 +17,7 @@ authRouter.route("/signout").post(signout);
 authRouter.route("/verify/:token").get(verifyEmail);
 authRouter.route("/resend-verification").post(resendVerificationEmail);
 authRouter.route("/forgot-password").post(forgotPassword);
-authRouter.route("/reset-password/:token").get(resetRedirect);
-authRouter.route("/reset-password").post(resetPassword);
+authRouter.route("/reset-password/").get(resetRedirect);
+authRouter.route("/change-password").post(resetPassword);
 
 export default authRouter;

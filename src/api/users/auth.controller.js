@@ -259,76 +259,148 @@ export const forgotPassword = async (req, res) => {
     const token = jwt.sign(
       {
         userId: user._id,
+        username: user.username,
+        email: user.email,
         purpose: 'password-reset'
       },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    const resetUrl = `http://localhost:${process.env.PORT}/api/auth/reset-password?token=${token}`
+    const resetUrl = `http://localhost:${process.env.PORT}/api/auth/reset-password?token=${token}`;
     
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
-      subject: "Password Reset",
+      subject: "Password Reset Request",
       html: generatePasswordResetRequest(user.username, resetUrl),
     });
 
     res.status(200).json(standardResponse);
-    res.redirect(`http://${process.env.FRONTEND_URL}/reset-password`);
   } catch (error) {
     console.log("Error in forgotPassword controller: ", error.message);
     res.status(500).json({success: false, message: "Internal Server Error" });
   }
 };
 
+export const resetRedirect = async (req, res) => {
+  try {
+    const { token } = req.query;
+    
+    if (!token) {
+      return res.render('verification', {
+        title: 'Reset Password Error',
+        message: 'Token is missing',
+        icon: '✕',
+        iconClass: 'error',
+        buttonText: 'Try Again',
+        buttonLink: '/forgot-password',
+        buttonClass: 'error-button'
+      });
+    }
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      
+      if (decoded.purpose !== 'password-reset') {
+        throw new Error('Invalid token purpose');
+      }
+
+      return res.render('reset-password', { 
+        username: decoded.username, 
+        email: decoded.email,
+        token: token
+      });
+    } catch (error) {
+      return res.render('verification', {
+        title: 'Reset Password Error',
+        message: 'Invalid or expired reset link',
+        icon: '✕',
+        iconClass: 'error',
+        buttonText: 'Try Again',
+        buttonLink: '/forgot-password',
+        buttonClass: 'error-button'
+      });
+    }
+  } catch (error) {
+    console.log("Error in reset redirect: ", error.message);
+    return res.render('verification', {
+      title: 'Server Error',
+      message: 'An error occurred while processing your request',
+      icon: '✕',
+      iconClass: 'error',
+      buttonText: 'Try Again',
+      buttonLink: '/forgot-password',
+      buttonClass: 'error-button'
+    });
+  }
+};
 
 export const resetPassword = async (req, res) => {
   try {
-    const { token } = req.query;
-    const { password, confirmPassword } = req.body;
+    const { token, password, confirmPassword } = req.body;
 
-    if (!password || !password.trim()) {
-      return res.status(400).json({ message: "New password is required" });
-    }
-
-    if (password !== confirmPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "Passwords do not match" });
-    }
-
+    // Verify token first
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
-    } catch (error) {
-      if (error.name === "TokenExpiredError") {
-        return res.status(400).json({ 
-          success: false,
-          message: "Reset link has expired" });
+      if (decoded.purpose !== 'password-reset') {
+        throw new Error('Invalid token purpose');
       }
-      return res.status(400).json({ message: "Invalid reset link" });
-    }
-
-    if (!decoded.purpose || decoded.purpose !== 'password-reset') {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid reset link" });
+    } catch (error) {
+      return res.render('verification', {
+        title: 'Reset Password Error',
+        message: 'Invalid or expired reset link',
+        icon: '✕',
+        iconClass: 'error',
+        buttonText: 'Try Again',
+        buttonLink: '/forgot-password',
+        buttonClass: 'error-button'
+      });
     }
 
     const user = await User.findById(decoded.userId);
     if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "User not found" });
+      return res.render('verification', {
+        title: 'Reset Password Error',
+        message: 'User not found',
+        icon: '✕',
+        iconClass: 'error',
+        buttonText: 'Try Again',
+        buttonLink: '/forgot-password',
+        buttonClass: 'error-button'
+      });
+    }
+
+    if (!password || !password.trim()) {
+      return res.render('verification', {
+        title: 'Reset Password Error',
+        message: 'New password is required',
+        icon: '✕',
+        iconClass: 'error',
+        buttonText: 'Try Again',
+        buttonLink: '/forgot-password',
+        buttonClass: 'error-button'
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.render('verification', {
+        title: 'Reset Password Error',
+        message: 'Passwords do not match',
+        icon: '✕',
+        iconClass: 'error',
+        buttonText: 'Try Again',
+        buttonLink: '/forgot-password',
+        buttonClass: 'error-button'
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
-     await User.findByIdAndUpdate( user._id,
-      {
-        password: hashedPassword
-      },
+    
+    await User.findByIdAndUpdate(
+      user._id,
+      { password: hashedPassword },
       { new: true }
     );
 
@@ -339,38 +411,26 @@ export const resetPassword = async (req, res) => {
       html: generatePasswordResetConfirmation(user.username),
     });
 
-    return res.status(200).json({
-      success: true,
-      message: "Password has been reset successfully. You can now log in with your new password."
+    return res.render('verification', {
+      title: 'Password Reset Successful!',
+      message: 'Your password has been changed successfully. You can now login with your new password.',
+      icon: '✓',
+      iconClass: 'success',
+      buttonText: 'Go to Login',
+      buttonLink: `${process.env.FRONTEND_URL}/login`,
+      buttonClass: 'success-button'
     });
 
   } catch (error) {
     console.log("Error in resetPassword controller: ", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Internal Server Error" 
+    return res.render('verification', {
+      title: 'Server Error',
+      message: 'An error occurred while resetting your password',
+      icon: '✕',
+      iconClass: 'error',
+      buttonText: 'Try Again',
+      buttonLink: '/forgot-password',
+      buttonClass: 'error-button'
     });
   }
 };
-
-export const resetRedirect = async (req, res) => {
-  try {
-    const { token } = req.query;
-    
-    if (!token) {
-      return res.status(400).send("Token is missing");
-    }
-    
-    try {
-      jwt.verify(token, process.env.JWT_SECRET);
-    } catch (error) {
-      return res.status(400).send("Invalid or expired token");
-    }
-    
-    return res.redirect(`${process.env.FRONTEND_URL}/reset-password`);
-    
-  } catch (error) {
-    console.log("Error in reset redirect: ", error.message);
-    return res.status(500).send("Server error");
-  }
-}
