@@ -299,7 +299,7 @@ export const resetPassword = async (req, res) => {
         icon: '✕',
         iconClass: 'error',
         buttonText: 'Try Again',
-        buttonLink: '/forgot-password',
+        buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
         buttonClass: 'error-button'
       });
     }
@@ -371,7 +371,7 @@ export const changePassword = async (req, res) => {
           icon: '✕',
           iconClass: 'error',
           buttonText: 'Request New Link',
-          buttonLink: '/forgot-password',
+          buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
           buttonClass: 'error-button'
         });
       }
@@ -383,7 +383,7 @@ export const changePassword = async (req, res) => {
         icon: '✕',
         iconClass: 'error',
         buttonText: 'Try Again',
-        buttonLink: '/forgot-password',
+        buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
         buttonClass: 'error-button'
       });
     }
@@ -396,7 +396,7 @@ export const changePassword = async (req, res) => {
         icon: '✕',
         iconClass: 'error',
         buttonText: 'Try Again',
-        buttonLink: '/forgot-password',
+        buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
         buttonClass: 'error-button'
       });
     }
@@ -408,7 +408,7 @@ export const changePassword = async (req, res) => {
         icon: '✕',
         iconClass: 'error',
         buttonText: 'Try Again',
-        buttonLink: '/forgot-password',
+        buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
         buttonClass: 'error-button'
       });
     }
@@ -420,7 +420,7 @@ export const changePassword = async (req, res) => {
         icon: '✕',
         iconClass: 'error',
         buttonText: 'Try Again',
-        buttonLink: '/forgot-password',
+        buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
         buttonClass: 'error-button'
       });
     }
@@ -464,7 +464,7 @@ export const changePassword = async (req, res) => {
       icon: '✕',
       iconClass: 'error',
       buttonText: 'Try Again',
-      buttonLink: '/forgot-password',
+      buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
       buttonClass: 'error-button'
     });
   }
