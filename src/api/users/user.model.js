@@ -35,7 +35,7 @@ const userSchema = new Schema(
       type: String,
       required: true,
       minlength: 6,
-      maxlength: 50,
+      maxlength: 128,
       validate: {
         validator: function (value) {
           return /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{6,}$/.test(
