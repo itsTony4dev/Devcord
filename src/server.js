@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 import errorHandler from './middleware/errorHandler.js';
 import connectDB from './config/database.js';
 
-import authRouter from './api/users/auth.router.js';
+import authRouter from './api/auth/auth.router.js';
 
 const app = express();
 
