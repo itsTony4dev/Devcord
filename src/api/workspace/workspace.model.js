@@ -1,7 +1,6 @@
 import "dotenv/config";
 import mongoose from "mongoose";
-
-const Schema = mongoose.Schema;
+const { Schema } = mongoose;
 
 const workspaceSchema = new Schema(
   {
@@ -50,7 +49,7 @@ const workspaceSchema = new Schema(
         joinedAt: {
           type: Date,
           default: Date.now,
-        }
+        },
       },
     ],
   },
