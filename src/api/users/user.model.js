@@ -5,7 +5,17 @@ const userSchema = new mongoose.Schema(
     username: {
       type: String,
       required: true,
-      index: true,
+      unique: true,
+      trim: true,
+      minlength: 3,
+      maxlength: 20,
+      validate: {
+        validator: function (value) {
+          return /^[a-zA-Z0-9_]+$/.test(value);
+        },
+        message:
+          "Username must contain only letters, numbers, and underscores.",
+      },
     },
     email: {
       type: String,
@@ -17,12 +27,14 @@ const userSchema = new mongoose.Schema(
         },
         message: "Invalid email format.",
       },
-      index: true,
+      trim: true,
+      lowercase: true,
     },
     password: {
       type: String,
       required: true,
       minlength: 6,
+      maxlength: 50,
       validate: {
         validator: function (value) {
           return /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{6,}$/.test(
