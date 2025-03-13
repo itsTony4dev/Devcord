@@ -32,7 +32,6 @@ const workspaceSchema = new Schema({
 // Indexes for faster queries
 workspaceSchema.index({ workspaceName: 1 });
 workspaceSchema.index({ createdBy: 1 });
-workspaceSchema.index({ inviteCode: 1 }, { unique: true });
 
 // Virtual for getting invite URL
 workspaceSchema.virtual('inviteUrl').get(function() {

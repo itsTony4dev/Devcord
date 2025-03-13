@@ -5,7 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 
-import User from "../../models/User.js";
+import {User} from "../../models/index.js";
 import { generateToken } from "../../utils/security/generateToken.js";
 import transporter from "../../utils/email/transporter.js";
 import generateEmailVerification from "../../utils/email/templates/generateEmailVerification.js";
