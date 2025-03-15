@@ -131,10 +131,7 @@ export const signin = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "User signed in successfully",
-      data: {
-        username: user.username,
-        email: user.email,
-      },
+      user
     });
   } catch (error) {
     console.log("Error in signin controller: ", error.message);
