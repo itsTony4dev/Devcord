@@ -122,12 +122,10 @@ export const updatePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Current password and new password are required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Current password and new password are required",
+      });
     }
 
     const user = await User.findById(req.user.id);
@@ -171,21 +169,7 @@ export const updateSocialLinks = async (req, res) => {
   try {
     const { github, linkedin } = req.body;
 
-    const updateFields = { socialLinks: {} };
-
-    if (github !== undefined) {
-      updateFields.socialLinks.github = github;
-    }
-
-    if (linkedin !== undefined) {
-      updateFields.socialLinks.linkedin = linkedin;
-    }
-
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { $set: updateFields },
-      { new: true, runValidators: true }
-    ).select("-password");
+    const user = await User.findById(req.user.id);
 
     if (!user) {
       return res
@@ -193,7 +177,19 @@ export const updateSocialLinks = async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
-    res.status(200).json({ success: true, user });
+    const updatedSocialLinks = {
+      ...user.socialLinks,
+      ...(github !== undefined && { github }),
+      ...(linkedin !== undefined && { linkedin }),
+    };
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: { socialLinks: updatedSocialLinks } },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    res.status(200).json({ success: true, user: updatedUser });
   } catch (error) {
     console.error("Error in updateSocialLinks controller:", error);
 
