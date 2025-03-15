@@ -54,7 +54,7 @@ const userSchema = new Schema(
         type: String,
         validate: {
           validator: function (value) {
-            return /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_-]+$/.test(
+            return /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_-]+\/?$/.test(
               value
             );
           },
@@ -65,7 +65,7 @@ const userSchema = new Schema(
         type: String,
         validate: {
           validator: function (value) {
-            return /^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+$/.test(
+            return /^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+(\/)?$/.test(
               value
             );
           },

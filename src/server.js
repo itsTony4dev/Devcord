@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import path from "path"
+import cookieParser from 'cookie-parser';
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -12,6 +13,7 @@ import errorHandler from './middleware/errorHandler.js';
 import connectDB from './config/database.js';
 
 import authRouter from './api/auth/auth.router.js';
+import userRouter from './api/users/user.router.js';
 
 const app = express();
 
@@ -21,6 +23,7 @@ app.set('views', path.join(__dirname, 'views'));
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(express.json());
 app.use(cors({
   origin: `${process.env.FRONTEND_URL}`,
@@ -30,6 +33,7 @@ app.use(helmet());
 
 // Routes
 app.use('/api/auth', authRouter);
+app.use('/api/users', userRouter);
 
 // Health Check
 app.get('/health', (_req, res) => {

@@ -99,7 +99,7 @@ export const signup = async (req, res) => {
 export const signin = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email.trim()) {
+    if (!email && !email.trim()) {
       return res
         .status(422)
         .json({ success: false, message: "Email or username is required" });
