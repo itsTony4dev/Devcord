@@ -5,7 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 
-import { User } from "../../models/index.js";
+import {User} from "../../models/index.js";
 import { generateToken } from "../../utils/security/generateToken.js";
 import transporter from "../../utils/email/transporter.js";
 import generateEmailVerification from "../../utils/email/templates/generateEmailVerification.js";
@@ -109,9 +109,7 @@ export const signin = async (req, res) => {
         .status(422)
         .json({ success: false, message: "Password is required" });
     }
-    const user = await User.findOne({ email }).select(
-      "-password -__v -createdAt -updatedAt -lastLogin"
-    );
+    const user = await User.findOne({ email });
     const isPasswordValid = await bcrypt.compare(
       password,
       user?.password || ""
@@ -133,7 +131,10 @@ export const signin = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "User signed in successfully",
-      user,
+      data: {
+        username: user.username,
+        email: user.email,
+      },
     });
   } catch (error) {
     console.log("Error in signin controller: ", error.message);
