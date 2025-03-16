@@ -83,15 +83,28 @@ export const getUsers = async (req, res) => {
   }
 };
 
-export const updateProfile = async (req, res) => {
+export const updateProfile = async (req, res) => {//TODO: username, github, linkedin, bio, skills, picture 
   try {
-    const { bio } = req.body;
+    const { username, github, linkedin, bio, skills } = req.body;
 
-    const updateFields = {};
 
-    if (bio !== undefined) {
-      updateFields.bio = bio;
+    const existingUser = await User.findById(req.user.id);
+
+    if (!existingUser) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
+    const updateFields = {
+      ...(username !== undefined && { username }),
+      ...(bio !== undefined && { bio }),
+      ...(skills !== undefined && { skills }),
+      socialLinks: {
+        ...existingUser.socialLinks,
+        ...(github !== undefined && { github }),
+        ...(linkedin !== undefined && { linkedin }),
+      },
+    };
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
@@ -165,75 +178,40 @@ export const updatePassword = async (req, res) => {
   }
 };
 
-export const updateSocialLinks = async (req, res) => {
-  try {
-    const { github, linkedin } = req.body;
 
-    const user = await User.findById(req.user.id);
+// export const updateSkills = async (req, res) => {
+//   try {
+//     const { skills } = req.body;
 
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
+//     if (!Array.isArray(skills)) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Invalid Request" });
+//     }
 
-    const updatedSocialLinks = {
-      ...user.socialLinks,
-      ...(github !== undefined && { github }),
-      ...(linkedin !== undefined && { linkedin }),
-    };
+//     const user = await User.findByIdAndUpdate(
+//       req.user.id,
+//       { $set: { skills } },
+//       { new: true, runValidators: true }
+//     ).select("-password");
 
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user.id,
-      { $set: { socialLinks: updatedSocialLinks } },
-      { new: true, runValidators: true }
-    ).select("-password");
+//     if (!user) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "User not found" });
+//     }
 
-    res.status(200).json({ success: true, user: updatedUser });
-  } catch (error) {
-    console.error("Error in updateSocialLinks controller:", error);
+//     res.status(200).json({ success: true, user });
+//   } catch (error) {
+//     console.error("Error in updateSkills controller:", error);
 
-    if (error.name === "ValidationError") {
-      return res.status(400).json({ success: false, message: error.message });
-    }
+//     if (error.name === "ValidationError") {
+//       return res.status(400).json({ success: false, message: error.message });
+//     }
 
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-export const updateSkills = async (req, res) => {
-  try {
-    const { skills } = req.body;
-
-    if (!Array.isArray(skills)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid Request" });
-    }
-
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { $set: { skills } },
-      { new: true, runValidators: true }
-    ).select("-password");
-
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
-
-    res.status(200).json({ success: true, user });
-  } catch (error) {
-    console.error("Error in updateSkills controller:", error);
-
-    if (error.name === "ValidationError") {
-      return res.status(400).json({ success: false, message: error.message });
-    }
-
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-};
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };
 
 export const searchUsers = async (req, res) => {
   try {

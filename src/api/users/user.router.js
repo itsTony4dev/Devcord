@@ -7,8 +7,6 @@ import {
   deleteAccount,
   getUsers,
   getUserById,
-  updateSocialLinks,
-  updateSkills,
   updateAvatar,
   getUserActivity,
   searchUsers,
@@ -18,8 +16,6 @@ import {
 import {
   validateUpdateProfile,
   validateUpdatePassword,
-  validateSocialLinks,
-  validateSkills,
   validateAvatar,
   validateSearch,
   validateUserId,
@@ -39,8 +35,6 @@ userRouter.get('/:id', validateUserId, validate, getUserById);
 userRouter.get('/', validatePagination, validate, getUsers);
 userRouter.put('/profile', validateUpdateProfile, validate, updateProfile);
 userRouter.put('/password', validateUpdatePassword, validate, updatePassword);
-userRouter.put('/social-links', validateSocialLinks, validate, updateSocialLinks);
-userRouter.put('/skills', validateSkills, validate, updateSkills);
 userRouter.put('/avatar', validateAvatar, validate, updateAvatar);
 userRouter.get('/search', validateSearch, validate, searchUsers);
 userRouter.post('/block/:id', validateUserId, validate, toggleBlockUser);
