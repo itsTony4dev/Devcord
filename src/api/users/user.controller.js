@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
 import { User } from "../../models/index.js";
+import cloudinary from "../../utils/cloudinary/cloudinary.js";
 
 export const getProfile = async (req, res) => {
   try {
@@ -331,9 +332,11 @@ export const updateAvatar = async (req, res) => {
         .json({ success: false, message: "Avatar URL is required" });
     }
 
+    const uploadResponse = await cloudinary.uploader.upload(avatar)
+
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { $set: { avatar } },
+      { $set: { avatar: uploadResponse.secure_url } },
       { new: true }
     ).select("-password");
 

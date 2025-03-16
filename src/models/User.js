@@ -100,6 +100,7 @@ const userSchema = new Schema(
   }
 );
 
+//Middleware to cascade delete user's stuff (Channels,Friends, etc.) when user is deleted
 
 const User = mongoose.model("User", userSchema);
 
