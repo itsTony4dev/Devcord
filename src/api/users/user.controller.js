@@ -84,26 +84,41 @@ export const getUsers = async (req, res) => {
   }
 };
 
-export const updateProfile = async (req, res) => {//TODO: username, github, linkedin, bio, skills, picture 
+export const updateProfile = async (req, res) => {
   try {
     const { username, github, linkedin, bio, skills } = req.body;
 
-
     const existingUser = await User.findById(req.user.id);
-
     if (!existingUser) {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
     }
+
+    if (skills !== undefined) {
+      if (
+        !Array.isArray(skills) ||
+        !skills.every((skill) => typeof skill === "string")
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "Skills must be an array of strings",
+          });
+      }
+    }
+
     const updateFields = {
-      ...(username !== undefined && { username }),
-      ...(bio !== undefined && { bio }),
+      ...(username !== undefined && {
+        username: username.trim().toLowerCase(),
+      }),
+      ...(bio !== undefined && { bio: bio.trim() }),
       ...(skills !== undefined && { skills }),
       socialLinks: {
-        ...existingUser.socialLinks,
-        ...(github !== undefined && { github }),
-        ...(linkedin !== undefined && { linkedin }),
+        ...(existingUser.socialLinks || {}),
+        ...(github !== undefined && { github: github.trim() }),
+        ...(linkedin !== undefined && { linkedin: linkedin.trim() }),
       },
     };
 
@@ -112,12 +127,6 @@ export const updateProfile = async (req, res) => {//TODO: username, github, link
       { $set: updateFields },
       { new: true, runValidators: true }
     ).select("-password");
-
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
 
     res.status(200).json({ success: true, user });
   } catch (error) {
@@ -130,6 +139,7 @@ export const updateProfile = async (req, res) => {//TODO: username, github, link
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 export const updatePassword = async (req, res) => {
   try {
