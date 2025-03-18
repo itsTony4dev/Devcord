@@ -5,7 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 
-import {User} from "../../models/index.js";
+import { User } from "../../models/index.js";
 import { generateToken } from "../../utils/security/generateToken.js";
 import transporter from "../../utils/email/transporter.js";
 import generateEmailVerification from "../../utils/email/templates/generateEmailVerification.js";
@@ -50,8 +50,6 @@ export const signup = async (req, res) => {
         .json({ success: false, message: "Username must be unique" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     //Email validation
     const emailRegex = /\S+@\S+\.\S+/;
     if (!emailRegex.test(email)) {
@@ -60,12 +58,13 @@ export const signup = async (req, res) => {
         .json({ success: false, message: "Email is not valid" });
     }
 
-    const user = await User.create({
+    const user = new User({
       username,
-      password: hashedPassword,
+      password,
       email,
     });
 
+    await user.save();
     if (!user) {
       return res.status(500).json({
         success: false,
@@ -92,6 +91,14 @@ export const signup = async (req, res) => {
     });
   } catch (error) {
     console.log("Error in signup controller: ", error.message);
+    if (error.name === "ValidationError") {
+      if (error.errors.password) {
+        return res.status(400).json({
+          success: false,
+          message: "Check password requirements",
+        });
+      }
+    }
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -131,7 +138,7 @@ export const signin = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "User signed in successfully",
-      user
+      user,
     });
   } catch (error) {
     console.log("Error in signin controller: ", error.message);

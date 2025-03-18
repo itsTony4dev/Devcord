@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 const { Schema } = mongoose;
 
@@ -32,8 +33,15 @@ const userSchema = new Schema(
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
-      minlength: [8, "Password must be at least 8 characters"],
+      required: true,
+      minlength: [8, "Password must be at least 8 characters long"],
+      validate: {
+        validator: function (value) {
+          return /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*])/.test(value);
+        },
+        message:
+          "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character",
+      },
     },
     isVerified: {
       type: Boolean,
@@ -99,6 +107,25 @@ const userSchema = new Schema(
     timestamps: true,
   }
 );
+
+userSchema.pre("save", async function (next) {
+  if (this.isModified("password") || this.isNew) {
+    if (this.password.length < 8) {
+      return next(new Error("Password must be at least 8 characters long"));
+    }
+    if (
+      !/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*])/.test(this.password)
+    ) {
+      return next(
+        new Error(
+          "Password must contain at least one digit, one lowercase letter, one uppercase letter, and one special character"
+        )
+      );
+    }
+    this.password = await bcrypt.hash(this.password, 10);
+  }
+  next();
+});
 
 //Middleware to cascade delete user's stuff (Channels,Friends, etc.) when user is deleted
 
