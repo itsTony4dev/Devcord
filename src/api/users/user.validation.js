@@ -21,7 +21,7 @@ export const validateUpdateProfile = [
     .isString()
     .withMessage("LinkedIn URL must be a string")
     .matches(/^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+(\/)?$/)
-    .withMessage("Invalid LinkedIn URL format")
+    .withMessage("Invalid LinkedIn URL format"),
 ];
 
 /**
@@ -42,6 +42,16 @@ export const validateUpdatePassword = [
     ),
 ];
 
+/**
+ * Validation rules for updating avatar
+ */
+export const validateAvatar = [
+  body("avatar")
+    .notEmpty()
+    .withMessage("Avatar URL is required")
+    .isURL()
+    .withMessage("Avatar must be a valid URL"),
+];
 
 /**
  * Validation rules for user search

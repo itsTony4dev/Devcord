@@ -14,6 +14,8 @@ import connectDB from './config/database.js';
 
 import authRouter from './api/auth/auth.router.js';
 import userRouter from './api/users/user.router.js';
+import workspacesRouter from './api/workspaces/workspaces.router.js';
+import { authenticate } from './middleware/auth.js';
 
 const app = express();
 
@@ -30,10 +32,12 @@ app.use(cors({
   credentials: true,
 }));
 app.use(helmet());
+app.use(authenticate);
 
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
+app.use('/api/workspaces', workspacesRouter)
 
 // Health Check
 app.get('/health', (_req, res) => {
