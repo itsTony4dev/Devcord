@@ -32,10 +32,10 @@ app.use(cors({
   credentials: true,
 }));
 app.use(helmet());
-app.use(authenticate);
 
 // Routes
 app.use('/api/auth', authRouter);
+app.use(authenticate);
 app.use('/api/users', userRouter);
 app.use('/api/workspaces', workspacesRouter)
 
