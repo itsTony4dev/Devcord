@@ -21,13 +21,7 @@ export const validateUpdateProfile = [
     .isString()
     .withMessage("LinkedIn URL must be a string")
     .matches(/^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+(\/)?$/)
-    .withMessage("Invalid LinkedIn URL format"),
-  body("skills").isArray().withMessage("Skills must be an array"),
-  body("skills.*")
-    .isString()
-    .withMessage("Each skill must be a string")
-    .isLength({ min: 1, max: 50 })
-    .withMessage("Each skill must be between 1 and 50 characters"),
+    .withMessage("Invalid LinkedIn URL format")
 ];
 
 /**
@@ -48,52 +42,6 @@ export const validateUpdatePassword = [
     ),
 ];
 
-/**
- * Validation rules for updating social links
- */
-// export const validateSocialLinks = [
-//   body("github")
-//     .optional()
-//     .isString()
-//     .withMessage("GitHub URL must be a string")
-//     .matches(/^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_-]+\/?$/)
-//     .withMessage("Invalid GitHub URL format"),
-//   body("linkedin")
-//     .optional()
-//     .isString()
-//     .withMessage("LinkedIn URL must be a string")
-//     .matches(/^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+(\/)?$/)
-//     .withMessage("Invalid LinkedIn URL format"),
-//   body("skills").isArray().withMessage("Skills must be an array"),
-//   body("skills.*")
-//     .isString()
-//     .withMessage("Each skill must be a string")
-//     .isLength({ min: 1, max: 50 })
-//     .withMessage("Each skill must be between 1 and 50 characters"),
-// ];
-
-/**
- * Validation rules for updating skills
- */
-// export const validateSkills = [
-//   body("skills").isArray().withMessage("Skills must be an array"),
-//   body("skills.*")
-//     .isString()
-//     .withMessage("Each skill must be a string")
-//     .isLength({ min: 1, max: 50 })
-//     .withMessage("Each skill must be between 1 and 50 characters"),
-// ];
-
-/**
- * Validation rules for updating avatar
- */
-export const validateAvatar = [
-  body("avatar")
-    .notEmpty()
-    .withMessage("Avatar URL is required")
-    .isURL()
-    .withMessage("Avatar must be a valid URL"),
-];
 
 /**
  * Validation rules for user search

@@ -100,12 +100,10 @@ export const updateProfile = async (req, res) => {
         !Array.isArray(skills) ||
         !skills.every((skill) => typeof skill === "string")
       ) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Skills must be an array of strings",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Skills must be an array of strings",
+        });
       }
     }
 
@@ -140,7 +138,6 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-
 export const updatePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -160,7 +157,6 @@ export const updatePassword = async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
-    // Check if current password is correct
     const isMatch = await bcrypt.compare(currentPassword, user.password);
 
     if (!isMatch) {
@@ -169,7 +165,6 @@ export const updatePassword = async (req, res) => {
         .json({ success: false, message: "Current password is incorrect" });
     }
 
-    // Hash new password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
 
@@ -188,41 +183,6 @@ export const updatePassword = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
-
-// export const updateSkills = async (req, res) => {
-//   try {
-//     const { skills } = req.body;
-
-//     if (!Array.isArray(skills)) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "Invalid Request" });
-//     }
-
-//     const user = await User.findByIdAndUpdate(
-//       req.user.id,
-//       { $set: { skills } },
-//       { new: true, runValidators: true }
-//     ).select("-password");
-
-//     if (!user) {
-//       return res
-//         .status(404)
-//         .json({ success: false, message: "User not found" });
-//     }
-
-//     res.status(200).json({ success: true, user });
-//   } catch (error) {
-//     console.error("Error in updateSkills controller:", error);
-
-//     if (error.name === "ValidationError") {
-//       return res.status(400).json({ success: false, message: error.message });
-//     }
-
-//     res.status(500).json({ success: false, message: "Server error" });
-//   }
-// };
 
 export const searchUsers = async (req, res) => {
   try {
@@ -342,7 +302,7 @@ export const updateAvatar = async (req, res) => {
         .json({ success: false, message: "Avatar URL is required" });
     }
 
-    const uploadResponse = await cloudinary.uploader.upload(avatar)
+    const uploadResponse = await cloudinary.uploader.upload(avatar);
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
@@ -365,6 +325,15 @@ export const updateAvatar = async (req, res) => {
 
 export const deleteAccount = async (req, res) => {
   try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: "Password is required to delete account",
+      });
+    }
+
     const user = await User.findById(req.user.id);
 
     if (!user) {
@@ -373,8 +342,21 @@ export const deleteAccount = async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
-    // TODO: Add logic to delete user's related data (messages, workspaces, etc.)
+    const isMatch = await bcrypt.compare(password, user.password);
 
+    if (!isMatch) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Incorrect password" });
+    }
+
+    // TODO: Add logic to delete user's related data (messages, workspaces, etc.)
+    res.clearCookie("jwt", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV !== "development",
+      sameSite: "strict",
+    });
+    
     await User.findByIdAndDelete(req.user.id);
 
     res
