@@ -8,9 +8,9 @@ import crypto from "crypto";
 import { User } from "../../models/index.js";
 import { generateToken } from "../../utils/security/generateToken.js";
 import transporter from "../../config/transporter.js";
-import generateEmailVerification from "../../utils/email/templates/generateEmailVerification.js";
-import generatePasswordResetConfirmation from "../../utils/email/templates/generatePasswordResetConfirmation.js";
-import generatePasswordResetRequest from "../../utils/email/templates/generatePasswordReset.js";
+import emailVerification from "../../utils/email/templates/emailVerification.js";
+import passwordResetConfirmationEmail from "../../utils/email/templates/passwordResetConfirmation.js";
+import passwordResetRequestEmail from "../../utils/email/templates/passwordResetRequest.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -82,7 +82,7 @@ export const signup = async (req, res) => {
       from: process.env.EMAIL_USER,
       to: email,
       subject: "Email Verification",
-      html: generateEmailVerification(username, url),
+      html: emailVerification(username, url),
     });
 
     res.status(201).json({
@@ -261,7 +261,7 @@ export const resendVerificationEmail = async (req, res) => {
       from: process.env.EMAIL_USER,
       to: email,
       subject: "Email Verification",
-      html: generateEmailVerification(user.username, url),
+      html: emailVerification(user.username, url),
     });
     res.status(200).json({
       success: true,
@@ -312,7 +312,7 @@ export const forgotPassword = async (req, res) => {
       from: process.env.EMAIL_USER,
       to: email,
       subject: "Password Reset Request",
-      html: generatePasswordResetRequest(user.username, resetUrl),
+      html: passwordResetRequestEmail(user.username, resetUrl),
     });
 
     res.status(200).json(standardResponse);
@@ -478,7 +478,7 @@ export const changePassword = async (req, res) => {
       from: process.env.EMAIL_USER,
       to: user.email,
       subject: "Password Reset Successful",
-      html: generatePasswordResetConfirmation(user.username),
+      html: passwordResetConfirmationEmail(user.username),
     });
 
     return res.render("verification", {

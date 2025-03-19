@@ -1,4 +1,4 @@
-const generatePasswordResetConfirmation = (username) => {
+const passwordResetConfirmationEmail = (username) => {
   return `
     <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
       <h2>Password Reset Successful</h2>
@@ -11,4 +11,4 @@ const generatePasswordResetConfirmation = (username) => {
   `;
 };
 
-export default generatePasswordResetConfirmation;
+export default passwordResetConfirmationEmail;

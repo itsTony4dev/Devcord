@@ -1,4 +1,4 @@
-const generatePasswordResetRequest = (username, url) => {
+const passwordResetRequestEmail = (username, url) => {
   return `
     <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; background-color: #f4f4f4; border-radius: 8px;">
       <div style="background: white; padding: 20px; border-radius: 8px; text-align: center;">
@@ -26,4 +26,4 @@ const generatePasswordResetRequest = (username, url) => {
   `;
 };
 
-export default generatePasswordResetRequest;
+export default passwordResetRequestEmail;

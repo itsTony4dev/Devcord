@@ -1,4 +1,4 @@
-const generateEmailVerification = (username, verificationLink) => {
+const emailVerification = (username, verificationLink) => {
   return `
     <!DOCTYPE html>
 <html lang="en">
@@ -96,4 +96,4 @@ const generateEmailVerification = (username, verificationLink) => {
   `;
 };
 
-export default generateEmailVerification
+export default emailVerification
