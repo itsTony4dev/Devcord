@@ -6,6 +6,9 @@ import {
   getWorkspace,
   getWorkspaces,
   updateWorkspace,
+  joinWorkspace,
+  leaveWorkspace,
+  getUserWorkspaces,
 } from "./workspaces.controller.js";
 import {
   validateCreateWorkspace,
@@ -25,5 +28,9 @@ workspacesRouter.put(
 );
 workspacesRouter.delete("/:id", validateWorkspaceId, deleteWorkspace);
 workspacesRouter.get("/:id/invite", validateWorkspaceId, getWorkspaceInviteUrl);
+
+workspacesRouter.post("/:id/join", joinWorkspace);
+workspacesRouter.post("/:id/leave", leaveWorkspace);
+workspacesRouter.get("/user", getUserWorkspaces);
 
 export default workspacesRouter;

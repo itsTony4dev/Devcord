@@ -26,7 +26,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({limit: '15mb'}));
 app.use(cors({
   origin: `${process.env.FRONTEND_URL}`,
   credentials: true,

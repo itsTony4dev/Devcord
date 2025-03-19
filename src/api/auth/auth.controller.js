@@ -7,7 +7,7 @@ import crypto from "crypto";
 
 import { User } from "../../models/index.js";
 import { generateToken } from "../../utils/security/generateToken.js";
-import transporter from "../../utils/email/transporter.js";
+import transporter from "../../config/transporter.js";
 import generateEmailVerification from "../../utils/email/templates/generateEmailVerification.js";
 import generatePasswordResetConfirmation from "../../utils/email/templates/generatePasswordResetConfirmation.js";
 import generatePasswordResetRequest from "../../utils/email/templates/generatePasswordReset.js";
