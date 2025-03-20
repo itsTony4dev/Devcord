@@ -368,19 +368,3 @@ export const deleteAccount = async (req, res) => {
   }
 };
 
-export const getUserActivity = async (req, res) => {
-  try {
-    // This would typically involve querying multiple collections
-    // to get the user's recent messages, threads, etc.
-    // For now, we'll return a placeholder
-
-    res.status(200).json({
-      success: true,
-      message: "Activity tracking not implemented yet",
-      // TODO: Implement activity tracking
-    });
-  } catch (error) {
-    console.error("Error in getUserActivity controller:", error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-};
