@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createChannel } from "./channels.controller";
+import { createChannel } from "./channels.controller.js";
 
 const channelsRouter = Router();
 

@@ -14,7 +14,6 @@ import {
 import {
   validateUpdateProfile,
   validateUpdatePassword,
-  validateAvatar,
   validateSearch,
   validateUserId,
   validatePagination

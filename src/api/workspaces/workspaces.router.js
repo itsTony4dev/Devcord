@@ -11,6 +11,7 @@ import {
   getUserWorkspaces,
   updateWorkspaceAdmin,
   getWorkspaceMembers,
+  sendWorkspaceInvite,
 } from "./workspaces.controller.js";
 
 import {
@@ -287,6 +288,8 @@ workspacesRouter.delete("/:id", validateWorkspaceId, deleteWorkspace);
  *         description: Internal server error
  */
 workspacesRouter.get("/:id/invite", validateWorkspaceId, getWorkspaceInviteUrl);
+
+workspacesRouter.post("/:id/invite", validateWorkspaceId, sendWorkspaceInvite);
 
 /**
  * @swagger
