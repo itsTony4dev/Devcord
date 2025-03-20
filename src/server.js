@@ -14,7 +14,7 @@ import connectDB from './config/database.js';
 
 import authRouter from './api/auth/auth.router.js';
 import userRouter from './api/users/user.router.js';
-import workspaceRouter from './api/workspaces/workspace.router.js';
+import workspaceRouter from './api/workspaces/workspaces.router.js';
 import { authenticate } from './middleware/auth.js';
 
 const app = express();
