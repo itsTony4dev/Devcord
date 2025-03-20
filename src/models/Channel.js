@@ -9,11 +9,6 @@ const channelSchema = new Schema({
     minlength: [2, 'Channel name must be at least 2 characters'],
     maxlength: [50, 'Channel name cannot exceed 50 characters']
   },
-  channelType: {
-    type: String,
-    enum: ['text', 'voice', 'announcement', 'task'],
-    default: 'text'
-  },
   workspaceId: {
     type: Schema.Types.ObjectId,
     ref: 'Workspace',
@@ -23,15 +18,6 @@ const channelSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: [true, 'Creator ID is required']
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  description: {
-    type: String,
-    maxlength: [200, 'Description cannot exceed 200 characters'],
-    default: ''
   },
   isPrivate: {
     type: Boolean,

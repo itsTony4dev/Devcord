@@ -68,7 +68,7 @@ export const createWorkspace = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in createWorkspace controller:", error.message);
-    res.status(500).json("Internal server error");
+    res.status(500).json({ success: false, messsage: "Internal server error" });
   }
 };
 
@@ -90,7 +90,7 @@ export const updateWorkspace = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in updateWorkspace controller:", error.message);
-    res.status(500).json("Internal server error");
+    res.status(500).json({ success: false, messsage: "Internal server error" });
   }
 };
 
@@ -108,7 +108,7 @@ export const deleteWorkspace = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in deleteWorkspace controller:", error.message);
-    res.status(500).json("Internal server error");
+    res.status(500).json({ success: false, messsage: "Internal server error" });
   }
 };
 
@@ -359,7 +359,7 @@ export const leaveWorkspace = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in leaveWorkspace controller:", error.message);
-    res.status(500).json("Internal server error");
+    res.status(500).json({ success: false, messsage: "Internal server error" });
   }
 };
 
@@ -468,4 +468,3 @@ export const getWorkspaceMembers = async (req, res) => {
     });
   }
 };
-

@@ -514,7 +514,7 @@ workspacesRouter.put("/:id/admin", validateWorkspaceId, updateWorkspaceAdmin);
  *                 members:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/WorkspaceMember'
+ *                     $ref: '#/components/schemas/UserWorkspace'
  *       404:
  *         description: Workspace not found
  *       500:

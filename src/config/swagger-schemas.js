@@ -114,7 +114,7 @@
  *         - createdAt
  *         - updatedAt
  * 
- *     WorkspaceMember:
+ *     UserWorkspace:
  *       type: object
  *       properties:
  *         _id:
