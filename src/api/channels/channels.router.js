@@ -1,5 +1,8 @@
 import { Router } from "express";
+import { createChannel } from "./channels.controller";
 
 const channelsRouter = Router();
 
-channelsRouter.get("/", (req, res) => {});
+channelsRouter.post("/", createChannel);
+
+export default channelsRouter;

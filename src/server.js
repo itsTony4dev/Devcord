@@ -15,9 +15,10 @@ import errorHandler from './middleware/errorHandler.js';
 import connectDB from './config/database.js';
 
 import authRouter from './api/auth/auth.router.js';
-import userRouter from './api/users/user.router.js';
-import workspaceRouter from './api/workspaces/workspaces.router.js';
+import usersRouter from './api/users/user.router.js';
+import workspacesRouter from './api/workspaces/workspaces.router.js';
 import { authenticate } from './middleware/auth.js';
+import channelsRouter from './api/channels/channels.router.js';
 
 const app = express();
 
@@ -41,8 +42,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 // Routes
 app.use('/api/auth', authRouter);
 app.use(authenticate);
-app.use('/api/users', userRouter);
-app.use('/api/workspaces', workspaceRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/workspaces', workspacesRouter);
+app.use("/api/channels", channelsRouter);
 
 // Health Check
 app.get('/health', (_req, res) => {

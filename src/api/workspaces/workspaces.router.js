@@ -286,7 +286,7 @@ workspacesRouter.delete("/:id", validateWorkspaceId, deleteWorkspace);
  *       500:
  *         description: Internal server error
  */
-workspacesRouter.post("/:id/invite", validateWorkspaceId, getWorkspaceInviteUrl);
+workspacesRouter.get("/:id/invite", validateWorkspaceId, getWorkspaceInviteUrl);
 
 /**
  * @swagger
