@@ -9,6 +9,8 @@ import {
   joinWorkspace,
   leaveWorkspace,
   getUserWorkspaces,
+  updateWorkspaceAdmin,
+  getWorkspaceMembers,
 } from "./workspaces.controller.js";
 import {
   validateCreateWorkspace,
@@ -32,5 +34,7 @@ workspacesRouter.get("/:id/invite", validateWorkspaceId, getWorkspaceInviteUrl);
 workspacesRouter.post("/:id/join", joinWorkspace);
 workspacesRouter.post("/:id/leave", leaveWorkspace);
 workspacesRouter.get("/user", getUserWorkspaces);
+workspacesRouter.get(":id/members", validateWorkspaceId, getWorkspaceMembers);
+workspacesRouter.put("/:id/admin", validateWorkspaceId, updateWorkspaceAdmin);
 
 export default workspacesRouter;
