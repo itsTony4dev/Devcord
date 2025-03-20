@@ -59,7 +59,9 @@ export const createWorkspace = async (req, res) => {
     await workspace.save();
 
     if (!workspace) {
-      return res.status(500).json("Workspace creation failed");
+      return res
+        .status(500)
+        .json({ success: false, message: "Workspace creation failed" });
     }
 
     const userWorkspace = new UserWorkspace({
@@ -68,7 +70,7 @@ export const createWorkspace = async (req, res) => {
       role: "owner",
     });
     await userWorkspace.save();
-    
+
     res.status(201).json({
       success: true,
       message: "Workspace created successfully",

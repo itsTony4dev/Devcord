@@ -19,6 +19,7 @@ import usersRouter from './api/users/user.router.js';
 import workspacesRouter from './api/workspaces/workspaces.router.js';
 import { authenticate } from './middleware/auth.js';
 import channelsRouter from './api/channels/channels.router.js';
+import friendsRouter from './api/friends/friends.router.js';
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.use(authenticate);
 app.use('/api/users', usersRouter);
 app.use('/api/workspaces', workspacesRouter);
 app.use("/api/channels", channelsRouter);
+app.use("/api/friends", friendsRouter)
 
 // Health Check
 app.get('/health', (_req, res) => {
