@@ -324,7 +324,7 @@ userRouter.put('/password', validateUpdatePassword, validate, updatePassword);
  *       500:
  *         description: Internal server error
  */
-userRouter.put('/avatar', validateAvatar, validate, updateAvatar);
+userRouter.put('/avatar', validate, updateAvatar);
 
 /**
  * @swagger

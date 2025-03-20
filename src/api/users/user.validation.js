@@ -42,16 +42,6 @@ export const validateUpdatePassword = [
     ),
 ];
 
-/**
- * Validation rules for updating avatar
- */
-export const validateAvatar = [
-  body("avatar")
-    .notEmpty()
-    .withMessage("Avatar URL is required")
-    .isBase64()
-    .withMessage("Avatar must be a valid URL"),
-];
 
 /**
  * Validation rules for user search
