@@ -49,7 +49,7 @@ export const validateAvatar = [
   body("avatar")
     .notEmpty()
     .withMessage("Avatar URL is required")
-    .isURL()
+    .isBase64()
     .withMessage("Avatar must be a valid URL"),
 ];
 
