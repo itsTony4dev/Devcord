@@ -357,7 +357,7 @@ friendRouter.delete("/:userId", validateUserId, validate, removeFriend);
  *       500:
  *         description: Server error
  */
-friendRouter.post("/block", validateBlockUser, validate, blockUser);
+friendRouter.post("/:userId/block", validateBlockUser, validate, blockUser);
 
 /**
  * @swagger
@@ -395,7 +395,7 @@ friendRouter.post("/block", validateBlockUser, validate, blockUser);
  *       500:
  *         description: Server error
  */
-friendRouter.delete("/block/:userId", validateUserId, validate, unblockUser);
+friendRouter.delete("/:userId/block", validateUserId, validate, unblockUser);
 
 /**
  * @swagger

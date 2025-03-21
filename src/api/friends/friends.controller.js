@@ -278,7 +278,7 @@ export const removeFriend = async (req, res) => {
  */
 export const blockUser = async (req, res) => {
   try {
-    const { userId: blockedId } = req.body;
+    const { userId: blockedId } = req.params;
     const userId = req.user.id;
 
     // Remove any existing friendship or requests
