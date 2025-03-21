@@ -111,7 +111,7 @@ export const deleteWorkspace = async (req, res) => {
     if (!workspace) {
       return res.status(404).json("Workspace not found");
     }
-    await workspace.remove();
+    await Workspace.findByIdAndDelete(id);
     res.status(200).json({
       success: true,
       message: "Workspace deleted successfully",
@@ -172,7 +172,7 @@ export const sendWorkspaceInvite = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Please provide at least one valid email to invite",
+        message: "Please provide at least one user to invite",
       });
     }
 
@@ -186,7 +186,7 @@ export const sendWorkspaceInvite = async (req, res) => {
     }
 
     // Check if user has permission to invite
-    if (workspace.createdBy.toString() !== req.user.id) {
+    if (workspace.createdBy.toString() !== req.user.id.toString()) {
       return res.status(403).json({
         success: false,
         message: "You do not have permission to invite users to this workspace",
@@ -210,12 +210,12 @@ export const sendWorkspaceInvite = async (req, res) => {
     const failedInvites = [];
 
     // Send invites to each email
-    for (const email of usersToInvite) {
+    for (const userId of usersToInvite) {
       try {
         // Find user if they exist
-        const user = await User.findOne({ email });
+        const user = await User.findById(userId);
         const username = user ? user.username : "there";
-
+        const email = user?.email;
         // Send email to user
         await transporter.sendMail({
           from: process.env.EMAIL,
@@ -335,18 +335,25 @@ export const leaveWorkspace = async (req, res) => {
     const { id } = req.params;
     const workspace = await Workspace.findById(id);
     if (!workspace) {
-      return res.status(404).json("Workspace not found");
+      return res
+        .status(404)
+        .json({ success: false, message: "Workspace not found" });
     }
     const user = await User.findById(req.user.id);
     if (!user) {
-      return res.status(404).json("User not found");
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
     const userWorkspace = await UserWorkspace.findOne({
       userId: user._id,
       workspaceId: workspace._id,
     });
     if (!userWorkspace) {
-      return res.status(400).json("You are not a member of this workspace");
+      return res.status(400).json({
+        success: false,
+        message: "You are not a member of this workspace",
+      });
     }
     if (
       userWorkspace.role === "owner" ||
@@ -358,9 +365,11 @@ export const leaveWorkspace = async (req, res) => {
     ) {
       return res
         .status(400)
-        .json(
-          "You cannot leave this workspace as you are the only admin or owner"
-        );
+        .json({
+          success: false,
+          message:
+            "You cannot leave this workspace as you are the only admin or owner",
+        });
     }
     await userWorkspace.remove();
     res.status(200).json({
@@ -375,7 +384,7 @@ export const leaveWorkspace = async (req, res) => {
 
 export const getUserWorkspaces = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({
         success: false,

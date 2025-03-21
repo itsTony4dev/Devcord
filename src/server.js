@@ -6,7 +6,6 @@ import path from "path"
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from "url";
 import swaggerUi from 'swagger-ui-express';
-import specs from './config/swagger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,6 +13,7 @@ const __dirname = path.dirname(__filename);
 import errorHandler from './middleware/errorHandler.js';
 import connectDB from './config/database.js';
 
+import specs from './config/swagger.js';
 import authRouter from './api/auth/auth.router.js';
 import usersRouter from './api/users/user.router.js';
 import workspacesRouter from './api/workspaces/workspaces.router.js';
@@ -40,6 +40,9 @@ app.use(helmet());
 // Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
+// Error Handler
+app.use(errorHandler);
+
 // Routes
 app.use('/api/auth', authRouter);
 app.use(authenticate);
@@ -53,8 +56,6 @@ app.get('/health', (_req, res) => {
   res.status(200).send('Healthy');
 });
 
-// Error Handler
-app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 

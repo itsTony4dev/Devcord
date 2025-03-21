@@ -53,6 +53,35 @@ workspacesRouter.get("/", getWorkspaces);
 
 /**
  * @swagger
+ * /api/workspaces/user/workspaces:
+ *   get:
+ *     summary: Get all workspaces the current user is a member of
+ *     tags: [Workspaces]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of user's workspaces
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 workspaces:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Workspace'
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
+workspacesRouter.get("/user", getUserWorkspaces);
+
+/**
+ * @swagger
  * /api/workspaces/{id}:
  *   get:
  *     summary: Get a specific workspace by ID
@@ -411,35 +440,6 @@ workspacesRouter.post("/:id/join", joinWorkspace);
  *               $ref: '#/components/schemas/Error'
  */
 workspacesRouter.post("/:id/leave", leaveWorkspace);
-
-/**
- * @swagger
- * /api/workspaces/user/workspaces:
- *   get:
- *     summary: Get all workspaces the current user is a member of
- *     tags: [Workspaces]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of user's workspaces
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 workspaces:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Workspace'
- *       404:
- *         description: User not found
- *       500:
- *         description: Internal server error
- */
-workspacesRouter.get("/user", getUserWorkspaces);
 
 /**
  * @swagger
