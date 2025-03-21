@@ -5,7 +5,7 @@ import { Friends, User } from "../../models/index.js";
  */
 export const sendFriendRequest = async (req, res) => {
   try {
-    const { userId: friendId } = req.body;
+    const { userId: friendId } = req.params;
     const userId = req.user.id;
 
     // Check if friend exists

@@ -248,24 +248,13 @@ friendRouter.get("/", authenticate, getFriendsList);
 
 /**
  * @swagger
- * /api/friends:
+ * /api/friends/{userId}/add-friend:
  *   post:
  *     summary: Send a friend request
  *     tags: [Friends]
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - userId
- *             properties:
- *               userId:
- *                 type: string
- *                 description: ID of the user to send friend request to
+ *     
  *     responses:
  *       201:
  *         description: Friend request sent successfully
@@ -290,7 +279,7 @@ friendRouter.get("/", authenticate, getFriendsList);
  *         description: Server error
  */
 friendRouter.post(
-  "/",
+  "/:userId/add-friend",
   authenticate,
   validateFriendRequest,
   validate,
