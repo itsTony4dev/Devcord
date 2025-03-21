@@ -22,6 +22,7 @@ import { validate } from "../../middleware/validate.js";
 import { authenticate } from "../../middleware/auth.js";
 
 const friendRouter = Router();
+friendRouter.use(authenticate);
 
 /**
  * @swagger
@@ -73,7 +74,7 @@ const friendRouter = Router();
  *       500:
  *         description: Server error
  */
-friendRouter.get("/requests", authenticate, getFriendRequests);
+friendRouter.get("/requests", getFriendRequests);
 
 /**
  * @swagger
@@ -118,7 +119,7 @@ friendRouter.get("/requests", authenticate, getFriendRequests);
  *       500:
  *         description: Server error
  */
-friendRouter.get("/requests/sent", authenticate, getSentFriendRequests);
+friendRouter.get("/requests/sent", getSentFriendRequests);
 
 /**
  * @swagger
@@ -156,11 +157,7 @@ friendRouter.get("/requests/sent", authenticate, getSentFriendRequests);
  *       500:
  *         description: Server error
  */
-friendRouter.put(
-  "/requests/:requestId/accept",
-  authenticate,
-  acceptFriendRequest
-);
+friendRouter.put("/requests/:requestId/accept", acceptFriendRequest);
 
 /**
  * @swagger
@@ -198,11 +195,7 @@ friendRouter.put(
  *       500:
  *         description: Server error
  */
-friendRouter.delete(
-  "/requests/:requestId/decline",
-  authenticate,
-  declineFriendRequest
-);
+friendRouter.delete("/requests/:requestId/decline", declineFriendRequest);
 
 /**
  * @swagger
@@ -244,7 +237,7 @@ friendRouter.delete(
  *       500:
  *         description: Server error
  */
-friendRouter.get("/", authenticate, getFriendsList);
+friendRouter.get("/", getFriendsList);
 
 /**
  * @swagger
@@ -254,7 +247,7 @@ friendRouter.get("/", authenticate, getFriendsList);
  *     tags: [Friends]
  *     security:
  *       - bearerAuth: []
- *     
+ *
  *     responses:
  *       201:
  *         description: Friend request sent successfully
@@ -280,7 +273,6 @@ friendRouter.get("/", authenticate, getFriendsList);
  */
 friendRouter.post(
   "/:userId/add-friend",
-  authenticate,
   validateFriendRequest,
   validate,
   sendFriendRequest
@@ -322,13 +314,7 @@ friendRouter.post(
  *       500:
  *         description: Server error
  */
-friendRouter.delete(
-  "/:userId",
-  authenticate,
-  validateUserId,
-  validate,
-  removeFriend
-);
+friendRouter.delete("/:userId", validateUserId, validate, removeFriend);
 
 /**
  * @swagger
@@ -371,13 +357,7 @@ friendRouter.delete(
  *       500:
  *         description: Server error
  */
-friendRouter.post(
-  "/block",
-  authenticate,
-  validateBlockUser,
-  validate,
-  blockUser
-);
+friendRouter.post("/block", validateBlockUser, validate, blockUser);
 
 /**
  * @swagger
@@ -415,13 +395,7 @@ friendRouter.post(
  *       500:
  *         description: Server error
  */
-friendRouter.delete(
-  "/block/:userId",
-  authenticate,
-  validateUserId,
-  validate,
-  unblockUser
-);
+friendRouter.delete("/block/:userId", validateUserId, validate, unblockUser);
 
 /**
  * @swagger
@@ -461,6 +435,6 @@ friendRouter.delete(
  *       500:
  *         description: Server error
  */
-friendRouter.get("/block", authenticate, getBlockedUsers);
+friendRouter.get("/block", getBlockedUsers);
 
 export default friendRouter;
