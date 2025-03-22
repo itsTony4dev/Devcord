@@ -74,7 +74,7 @@ Friends.findFriends = async function (userId) {
   try {
     // Convert string ID to ObjectId if needed
     const userObjectId = mongoose.Types.ObjectId.isValid(userId)
-      ? new mongoose.Types.ObjectId(userId)
+      ? new mongoose.Types.createFromTime(userId)
       : userId;
 
     // Find friendships where the user is either the requester or recipient
