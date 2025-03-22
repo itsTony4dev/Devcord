@@ -54,7 +54,7 @@ friendsSchema.statics.findFriends = async function (userId) {
   try {
     // Make sure we're working with a valid ObjectId
    const userObjectId = mongoose.Types.ObjectId.isValid(userId)
-     ? mongoose.Types.ObjectId.fromString(userId)
+     ? mongoose.Types.ObjectId(userId)
      : userId;
     // Find all accepted friendships where the user is either userId or friendId
     const friends = await this.find({
