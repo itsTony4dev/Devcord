@@ -48,6 +48,9 @@ friendsSchema.pre('save', function(next) {
 
 // Static method to find all friends of a user
 friendsSchema.statics.findFriends = async function(userId) {
+  // Convert userId to string for consistent comparison
+  const userIdStr = userId.toString();
+  
   const friends = await this.find({
     $or: [
       { userId: userId, status: 'accepted' },
@@ -56,9 +59,10 @@ friendsSchema.statics.findFriends = async function(userId) {
   }).populate('userId friendId', 'username avatar');
   
   return friends.map(friendship => {
-    const friend = friendship.userId.toString() === userId.toString() 
-      ? friendship.friendId 
-      : friendship.userId;
+    // Determine which user is the friend (not the current user)
+    const isCurrentUserTheRequester = friendship.userId._id.toString() === userIdStr;
+    const friend = isCurrentUserTheRequester ? friendship.friendId : friendship.userId;
+    
     return {
       friendshipId: friendship._id,
       friendId: friend._id,

@@ -376,4 +376,6 @@ export const getBlockedUsers = async (req, res) => {
       message: "Internal server error"
     });
   }
-}; 
+};
+
+const userIdStr = userId.toString(); 
