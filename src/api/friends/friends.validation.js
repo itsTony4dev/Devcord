@@ -16,7 +16,7 @@ export const validateUserId = [
  * Validate friend request body
  */
 export const validateFriendRequest = [
-  body('userId')
+  param('userId')
     .notEmpty()
     .withMessage('User ID is required')
     .custom((value) => mongoose.Types.ObjectId.isValid(value))

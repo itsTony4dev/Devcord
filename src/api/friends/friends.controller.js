@@ -378,4 +378,3 @@ export const getBlockedUsers = async (req, res) => {
   }
 };
 
-const userIdStr = userId.toString(); 
