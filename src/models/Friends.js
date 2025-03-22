@@ -70,5 +70,73 @@ friendsSchema.statics.findFriends = async function(userId) {
 };
 
 const Friends = mongoose.model('Friends', friendsSchema);
+Friends.findFriends = async function (userId) {
+  try {
+    // Convert string ID to ObjectId if needed
+    const userObjectId = mongoose.Types.ObjectId.isValid(userId)
+      ? new mongoose.Types.ObjectId(userId)
+      : userId;
+
+    // Find friendships where the user is either the requester or recipient
+    const friendships = await this.aggregate([
+      {
+        $match: {
+          $or: [{ user_id: userObjectId }, { friend_id: userObjectId }],
+          status: "accepted",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_id",
+          foreignField: "_id",
+          as: "requester",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "friend_id",
+          foreignField: "_id",
+          as: "recipient",
+        },
+      },
+      {
+        $unwind: "$requester",
+      },
+      {
+        $unwind: "$recipient",
+      },
+      {
+        $project: {
+          _id: 1,
+          status: 1,
+          created_at: 1,
+          updated_at: 1,
+          friend: {
+            $cond: {
+              if: { $eq: ["$user_id", userObjectId] },
+              then: {
+                _id: "$friend_id",
+                username: "$recipient.username",
+                profile_picture: "$recipient.profile_picture",
+              },
+              else: {
+                _id: "$user_id",
+                username: "$requester.username",
+                profile_picture: "$requester.profile_picture",
+              },
+            },
+          },
+        },
+      },
+    ]);
+
+    return friendships;
+  } catch (error) {
+    console.error("Error in Friends.findFriends:", error);
+    throw error;
+  }
+};
 
 export default Friends; 

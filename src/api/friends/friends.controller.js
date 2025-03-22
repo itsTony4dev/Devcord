@@ -223,16 +223,24 @@ export const getFriendsList = async (req, res) => {
     const userId = req.user.id;
     const friends = await Friends.findFriends(userId);
 
+    // Transform the data to make it cleaner for the client
+    const formattedFriends = friends.map((friendship) => ({
+      friendship_id: friendship._id,
+      status: friendship.status,
+      created_at: friendship.created_at,
+      updated_at: friendship.updated_at,
+      friend: friendship.friend,
+    }));
+
     res.status(200).json({
       success: true,
-      data: friends
+      data: formattedFriends,
     });
-
   } catch (error) {
     console.error("Error in getFriendsList:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: "Internal server error",
     });
   }
 };
