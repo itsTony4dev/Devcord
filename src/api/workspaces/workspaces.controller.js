@@ -208,6 +208,7 @@ export const sendWorkspaceInvite = async (req, res) => {
     // Keep track of successful invites
     const successfulInvites = [];
     const failedInvites = [];
+    const invitedUsers = [];
 
     // Send invites to each email
     for (const userId of usersToInvite) {
@@ -229,6 +230,7 @@ export const sendWorkspaceInvite = async (req, res) => {
           }),
         });
 
+        invitedUsers.push(userId);
         successfulInvites.push(email);
       } catch (emailError) {
         console.error(`Failed to send invite to ${email}:`, emailError.message);
@@ -236,6 +238,9 @@ export const sendWorkspaceInvite = async (req, res) => {
       }
     }
 
+    await Workspace.findByIdAndUpdate(workspaceId, {
+      $addToSet: { invitedUsers },
+    });
     // Return response with results
     res.status(200).json({
       success: true,
@@ -257,7 +262,7 @@ export const sendWorkspaceInvite = async (req, res) => {
 
 export const joinWorkspace = async (req, res) => {
   try {
-    const { inviteCode } = req.params;
+    const { inviteCode } = req.body;
 
     // Check if invite code is valid
     const workspace = await Workspace.findOne({ inviteCode });
@@ -299,6 +304,20 @@ export const joinWorkspace = async (req, res) => {
         message: "You are the owner of this workspace",
         workspaceId: workspace._id,
         workspaceName: workspace.workspaceName,
+      });
+    }
+
+    // Check if user is invited
+    const isInvited =
+      workspace.invitedUsers &&
+      workspace.invitedUsers.some(
+        (id) => id.toString() === user._id.toString()
+      );
+
+    if (!isInvited) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not invited to join this workspace",
       });
     }
 
@@ -363,13 +382,11 @@ export const leaveWorkspace = async (req, res) => {
           role: "admin",
         })) === 1)
     ) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message:
-            "You cannot leave this workspace as you are the only admin or owner",
-        });
+      return res.status(400).json({
+        success: false,
+        message:
+          "You cannot leave this workspace as you are the only admin or owner",
+      });
     }
     await userWorkspace.remove();
     res.status(200).json({

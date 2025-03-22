@@ -63,7 +63,10 @@ export const getUsers = async (req, res) => {
       query.skills = { $in: skills.split(",").map((skill) => skill.trim()) };
     }
 
-    const users = await User.find(query)
+    const users = await User.find({
+      ...query,
+      _id: { $ne: req.user._id }, 
+    })
       .select("username avatar skills bio isVerified")
       .limit(limit * 1)
       .skip((page - 1) * limit)
@@ -356,7 +359,7 @@ export const deleteAccount = async (req, res) => {
       secure: process.env.NODE_ENV !== "development",
       sameSite: "strict",
     });
-    
+
     await User.findByIdAndDelete(req.user.id);
 
     res
@@ -367,4 +370,3 @@ export const deleteAccount = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-

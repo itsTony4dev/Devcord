@@ -81,7 +81,6 @@ const workspaceInviteEmail = ({ username, workspaceName, inviteCode, baseUrl }) 
     <body>
       <div class="container">
         <div class="header">
-          <img src="${baseUrl}/images/logo.png" alt="Devcord Logo" class="logo">
           <h1>Workspace Invitation</h1>
         </div>
         <div class="content">
