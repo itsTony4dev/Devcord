@@ -2,12 +2,12 @@ import { Channel } from "../../models/index.js";
 
 export const createChannel = async (req, res) => {
   try {
-    const { ChannelName, isPrivate, allowedUsers } = req.body;
+    const { channelName, isPrivate, allowedUsers } = req.body;
     const { workspaceId } = req.params;
     const { _id: userId } = req.user;
 
     const channel = new Channel({
-      ChannelName,
+      channelName,
       isPrivate,
       allowedUsers,
       workspaceId,
@@ -78,3 +78,4 @@ export const deleteChannel = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+

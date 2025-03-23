@@ -1,4 +1,4 @@
-import express from 'express';
+import express from "express";
 import {
   createWorkspace,
   deleteWorkspace,
@@ -12,6 +12,7 @@ import {
   updateWorkspaceAdmin,
   getWorkspaceMembers,
   sendWorkspaceInvite,
+  getWorkspaceInvitedUsers,
 } from "./workspaces.controller.js";
 
 import {
@@ -20,7 +21,7 @@ import {
   validateWorkspaceId,
 } from "./workspaces.validation.js";
 
-import { validate } from '../../middleware/validate.js';
+import { validate } from "../../middleware/validate.js";
 
 const workspacesRouter = express.Router();
 
@@ -524,5 +525,45 @@ workspacesRouter.put("/:id/admin", validateWorkspaceId, updateWorkspaceAdmin);
  *         description: Internal server error
  */
 workspacesRouter.get("/:id/members", validateWorkspaceId, getWorkspaceMembers);
+
+/**
+ * @swagger
+ * /api/workspaces/{id}/invited-users:
+ *   get:
+ *     summary: Get all invited users of a workspace
+ *     tags: [Workspaces]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Workspace ID
+ *     responses:
+ *       200:
+ *         description: List of invited users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 invitedUsers:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/UserWorkspace'
+ *       404:
+ *         description: Workspace not found
+ *       500:
+ *         description: Internal server error
+ */
+workspacesRouter.get(
+  "/:id/invited-users",
+  validateWorkspaceId,
+  getWorkspaceInvitedUsers
+);
 
 export default workspacesRouter;

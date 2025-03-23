@@ -505,3 +505,35 @@ export const getWorkspaceMembers = async (req, res) => {
     });
   }
 };
+
+// export const removeWorkspaceMember = async (req, res) => {};
+
+export const getWorkspaceInvitedUsers = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const workspace = await Workspace.findById(id);
+    if (!workspace) {
+      return res.status(404).json({
+        success: false,
+        message: "Workspace not found",
+      });
+    }
+    const invitedUsers = await User.find({
+      _id: { $in: workspace.invitedUsers },
+    });
+    res.status(200).json({
+      success: true,
+      invitedUsers,
+    });
+    return res.status(200).json({ success: true, invitedUsers });
+  } catch (error) {
+    console.error(
+      "Error in getWorkspaceInvitedUsers controller:",
+      error.message
+    );
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
