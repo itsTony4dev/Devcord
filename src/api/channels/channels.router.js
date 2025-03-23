@@ -14,7 +14,7 @@ import {
   validateChannelId,
   validateCreateChannel,
   validateUserId,
-} from "./channels.validation";
+} from "./channels.validation.js";
 
 const router = express.Router();
 
