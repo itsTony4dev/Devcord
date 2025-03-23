@@ -64,14 +64,14 @@ export const deleteChannel = async (req, res) => {
   try {
     const { channelId } = req.params;
 
-    const channel = await Channel.findById(channelId);
-    if (!channel) {
+    const result = await Channel.findByIdAndDelete(channelId);
+
+    if (!result) {
       return res
         .status(404)
         .json({ success: false, message: "Channel not found" });
     }
 
-    await channel.remove();
     res.status(200).json({ success: true, message: "Channel deleted" });
   } catch (error) {
     console.error("Error in deleteChannel controller:", error.message);

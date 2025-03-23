@@ -107,11 +107,12 @@ export const updateWorkspace = async (req, res) => {
 export const deleteWorkspace = async (req, res) => {
   try {
     const { id } = req.params;
-    const workspace = await Workspace.findById(id);
+    const workspace = await Workspace.findByIdAndDelete(id);
     if (!workspace) {
-      return res.status(404).json("Workspace not found");
+      return res
+        .status(404)
+        .json({ success: false, message: "Workspace not found" });
     }
-    await Workspace.findByIdAndDelete(id);
     res.status(200).json({
       success: true,
       message: "Workspace deleted successfully",
