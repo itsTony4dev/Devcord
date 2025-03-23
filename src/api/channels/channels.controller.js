@@ -79,3 +79,197 @@ export const deleteChannel = async (req, res) => {
   }
 };
 
+/**
+ * Middleware to check if a user has access to a channel
+ * Used for private channels to restrict access to only allowed users
+ */
+export const checkChannelAccess = async (req, res, next) => {
+  try {
+    const { channelId } = req.params;
+    const userId = req.user._id;
+
+    // Find the channel
+    const channel = await Channel.findById(channelId);
+    
+    // If channel doesn't exist, return 404
+    if (!channel) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Channel not found" 
+      });
+    }
+    
+    // If channel is not private, allow access
+    if (!channel.isPrivate) {
+      // Store channel in request for potential later use
+      req.channel = channel;
+      return next();
+    }
+    
+    // If user is the creator, allow access
+    if (channel.createdBy.toString() === userId.toString()) {
+      req.channel = channel;
+      return next();
+    }
+    
+    // Check if user is in the allowed users list
+    const isAllowed = channel.allowedUsers.some(
+      allowedId => allowedId.toString() === userId.toString()
+    );
+    
+    if (!isAllowed) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have access to this channel"
+      });
+    }
+    
+    // User has access, store channel in request and continue
+    req.channel = channel;
+    next();
+    
+  } catch (error) {
+    console.error("Error in checkChannelAccess middleware:", error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error" 
+    });
+  }
+};
+
+/**
+ * Add a user to a private channel's allowed users list
+ */
+export const addUserToPrivateChannel = async (req, res) => {
+  try {
+    const { channelId, userId: userToAddId } = req.params;
+    const currentUserId = req.user._id;
+    
+    // Find the channel
+    const channel = await Channel.findById(channelId);
+    
+    // If channel doesn't exist, return 404
+    if (!channel) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Channel not found" 
+      });
+    }
+    
+    // Check if channel is private
+    if (!channel.isPrivate) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot add users to a public channel"
+      });
+    }
+    
+    // Check if requesting user is the creator or has access
+    const isCreator = channel.createdBy.toString() === currentUserId.toString();
+    const hasAccess = channel.allowedUsers.some(
+      id => id.toString() === currentUserId.toString()
+    );
+    
+    if (!isCreator && !hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to add users to this channel"
+      });
+    }
+    
+    // Check if user is already in allowed users
+    const isAlreadyAllowed = channel.allowedUsers.some(
+      id => id.toString() === userToAddId
+    );
+    
+    if (isAlreadyAllowed) {
+      return res.status(400).json({
+        success: false,
+        message: "User already has access to this channel"
+      });
+    }
+    
+    // Add user to allowed users
+    channel.allowedUsers.push(userToAddId);
+    await channel.save();
+    
+    res.status(200).json({
+      success: true,
+      message: "User added to private channel successfully"
+    });
+    
+  } catch (error) {
+    console.error("Error in addUserToPrivateChannel controller:", error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error" 
+    });
+  }
+};
+
+/**
+ * Remove a user from a private channel's allowed users list
+ */
+export const removeUserFromPrivateChannel = async (req, res) => {
+  try {
+    const { channelId, userId: userToRemoveId } = req.params;
+    const currentUserId = req.user._id;
+    
+    // Find the channel
+    const channel = await Channel.findById(channelId);
+    
+    // If channel doesn't exist, return 404
+    if (!channel) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Channel not found" 
+      });
+    }
+    
+    // Check if channel is private
+    if (!channel.isPrivate) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot remove users from a public channel"
+      });
+    }
+    
+    // Check if requesting user is the creator
+    const isCreator = channel.createdBy.toString() === currentUserId.toString();
+    
+    if (!isCreator) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the channel creator can remove users"
+      });
+    }
+    
+    // Cannot remove the creator
+    if (userToRemoveId === channel.createdBy.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot remove the channel creator"
+      });
+    }
+    
+    // Remove user from allowed users
+    channel.allowedUsers = channel.allowedUsers.filter(
+      id => id.toString() !== userToRemoveId
+    );
+    
+    await channel.save();
+    
+    res.status(200).json({
+      success: true,
+      message: "User removed from private channel successfully"
+    });
+    
+  } catch (error) {
+    console.error("Error in removeUserFromPrivateChannel controller:", error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error" 
+    });
+  }
+};
+
