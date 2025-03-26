@@ -20,8 +20,9 @@ import workspacesRouter from './api/workspaces/workspaces.router.js';
 import { authenticate } from './middleware/auth.js';
 import channelsRouter from './api/channels/channels.router.js';
 import friendsRouter from './api/friends/friends.router.js';
+import { io, app, server } from './config/socket.js';
 
-const app = express();
+
 
 app.set("view engine", "ejs");
 app.set('views', path.join(__dirname, 'views'));
@@ -29,7 +30,6 @@ app.set('views', path.join(__dirname, 'views'));
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 app.use(express.json({limit: '15mb'}));
 app.use(cors({
   origin: `${process.env.FRONTEND_URL}`,
@@ -60,7 +60,7 @@ app.get('/health', (_req, res) => {
 const PORT = process.env.PORT || 3000;
 
 // Start server
-const server = app.listen(PORT, async () => {
+server.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
   connectDB();
 });

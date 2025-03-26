@@ -506,7 +506,7 @@ export const getWorkspaceMembers = async (req, res) => {
   }
 };
 
-// export const removeWorkspaceMember = async (req, res) => {};
+// TODO: export const removeWorkspaceMember = async (req, res) => {};
 
 export const getWorkspaceInvitedUsers = async (req, res) => {
   try {
