@@ -88,7 +88,7 @@ const workspaceInviteEmail = ({ username, workspaceName, inviteCode, baseUrl }) 
           <p>You've been invited to join a workspace on Devcord!</p>
           <div class="workspace-name">${workspaceName}</div>
           <p>Click the button below to join the workspace and start collaborating with the team.</p>
-          <a href="${baseUrl}/join-workspace/${inviteCode}" class="button">Join Workspace</a>
+          <a href="${baseUrl}/join?inviteCode=${inviteCode}" class="button">Join Workspace</a>
           <p class="note">If the button doesn't work, you can also join by entering this invite code on the Devcord app:</p>
           <div class="code-display">${inviteCode}</div>
           <p class="note">This invitation will expire in 7 days.</p>
