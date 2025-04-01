@@ -495,7 +495,19 @@ export const getWorkspaceMembers = async (req, res) => {
     const members = await UserWorkspace.findWorkspaceMembers(workspace._id);
     res.status(200).json({
       success: true,
-      members,
+      workspace: {
+        id: workspace._id,
+        name: workspace.workspaceName,
+        description: workspace.description,
+      },
+      members: members.map((member) => ({
+        id: member.userId._id,
+        username: member.userId.username,
+        email: member.userId.email,
+        avatar: member.userId.avatar,
+        role: member.role,
+        joinedAt: member.joinedAt,
+      })),
     });
   } catch (error) {
     console.error("Error in getWorkspaceMembers controller:", error.message);

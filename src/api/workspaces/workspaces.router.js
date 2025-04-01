@@ -384,7 +384,7 @@ workspacesRouter.post("/:id/invite", validateWorkspaceId, sendWorkspaceInvite);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-workspacesRouter.post("/:id/join", joinWorkspace);
+workspacesRouter.get("/:id/join/:inviteCode", joinWorkspace);
 
 /**
  * @swagger
