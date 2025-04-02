@@ -22,6 +22,10 @@ const messageSchema = new Schema({
     required: [true, 'Message content is required'],
     maxlength: [5000, 'Message content cannot exceed 5000 characters']
   },
+  image:{
+    type:String,
+    default: null
+  },
   isCode: {
     type: Boolean,
     default: false

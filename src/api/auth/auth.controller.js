@@ -462,11 +462,8 @@ export const changePassword = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await User.findByIdAndUpdate(
-      user._id,
-      { password: hashedPassword },
-      { new: true }
-    );
+    user.password = hashedPassword;
+    await user.save();
 
     usedTokens.add(decoded.tokenId);
 
