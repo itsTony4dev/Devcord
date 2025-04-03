@@ -264,7 +264,7 @@ export const sendWorkspaceInvite = async (req, res) => {
 
 export const joinWorkspace = async (req, res) => {
   try {
-    const { inviteCode } = req.query;
+    const { inviteCode } = req.params;
 
     // Check if invite code is valid
     const workspace = await Workspace.findOne({ inviteCode });
