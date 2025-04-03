@@ -20,9 +20,11 @@ import workspacesRouter from './api/workspaces/workspaces.router.js';
 import { authenticate } from './middleware/auth.js';
 import channelsRouter from './api/channels/channels.router.js';
 import friendsRouter from './api/friends/friends.router.js';
+import messagesRouter from './api/messages/messages.router.js';
 import { io, app, server } from './config/socket.js';
 
-
+// Attach socket instance to app for access in controllers
+app.set('io', io);
 
 app.set("view engine", "ejs");
 app.set('views', path.join(__dirname, 'views'));
@@ -48,19 +50,18 @@ app.use('/api/auth', authRouter);
 app.use(authenticate);
 app.use('/api/users', usersRouter);
 app.use('/api/workspaces', workspacesRouter);
-app.use("/api/channels", channelsRouter);
-app.use("/api/friends", friendsRouter)
+app.use('/api/workspace/channels', channelsRouter);
+app.use('/api/friends', friendsRouter);
+app.use('/api/messages', messagesRouter);
 
 // Health Check
 app.get('/health', (_req, res) => {
   res.status(200).send('Healthy');
 });
 
-
-const PORT = process.env.PORT || 3000;
-
 // Start server
-server.listen(PORT, async () => {
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   connectDB();
 });

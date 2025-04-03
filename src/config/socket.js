@@ -3,7 +3,7 @@ import { Server } from "socket.io";
 import http from "http";
 import express from "express";
 import jwt from "jsonwebtoken";
-import { Channel, User } from "../models/index.js";
+import { Channel, User, UserWorkspace } from "../models/index.js";
 import cookieParser from 'cookie-parser';
 
 const app = express();
@@ -25,6 +25,14 @@ const userSocketMap = {};
 
 // Store users in channels - {channelId: [userId1, userId2, ...]}
 const channelUsers = {};
+
+// Store user's workspace - {userId: workspaceId}
+const userWorkspaceMap = {};
+
+// Attach socket maps to io instance for access in controllers
+io.userSocketMap = userSocketMap;
+io.channelUsers = channelUsers;
+io.userWorkspaceMap = userWorkspaceMap;
 
 // Get receiver socket ID for direct messages
 export function getReceiverSocketId(userId) {
@@ -65,45 +73,87 @@ io.use(async (socket, next) => {
 });
 
 // Socket connection handler
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
   console.log("User connected:", socket.id);
   
   const userId = socket.userId;
   
-  // Store user's socket ID
-  if (userId) {
-    userSocketMap[userId] = socket.id;
-    // Broadcast online users
-    io.emit("getOnlineUsers", Object.keys(userSocketMap));
-    
-    // Send welcome message
-    socket.emit("welcome", {
-      message: `Welcome ${socket.username}!`,
-      userId
-    });
+  try {
+    // Store user's socket ID
+    if (userId) {
+      userSocketMap[userId] = socket.id;
+      
+      // Get user's workspace
+      const userWorkspace = await UserWorkspace.findOne({ userId });
+      if (userWorkspace) {
+        const workspaceId = userWorkspace.workspaceId.toString();
+        userWorkspaceMap[userId] = workspaceId;
+        
+        // Join workspace room automatically
+        socket.join(workspaceId);
+        
+        // Get all channels in workspace
+        const channels = await Channel.find({ workspaceId });
+        
+        // Join public channels automatically
+        const publicChannels = channels.filter(channel => !channel.isPrivate);
+        publicChannels.forEach(channel => {
+          socket.join(channel._id.toString());
+          if (!channelUsers[channel._id]) {
+            channelUsers[channel._id] = [];
+          }
+          if (!channelUsers[channel._id].includes(userId)) {
+            channelUsers[channel._id].push(userId);
+          }
+        });
+        
+        // Send user's channel list
+        socket.emit("userChannels", {
+          publicChannels: publicChannels.map(ch => ch._id),
+          privateChannels: channels
+            .filter(ch => ch.isPrivate && 
+              (ch.createdBy.toString() === userId || 
+               ch.allowedUsers.some(id => id.toString() === userId)))
+            .map(ch => ch._id)
+        });
+      }
+      
+      // Broadcast online users
+      io.emit("getOnlineUsers", Object.keys(userSocketMap));
+      
+      // Send welcome message
+      socket.emit("welcome", {
+        message: `Welcome ${socket.username}!`,
+        userId
+      });
+    }
+  } catch (error) {
+    console.error("Error in connection handler:", error);
+    socket.emit("error", { message: "Failed to initialize connection" });
   }
   
-  // Join channel
-  socket.on("joinChannel", async ({ channelId }) => {
+  // Join private channel
+  socket.on("joinPrivateChannel", async ({ channelId }) => {
     try {
-      // Validate channel existence and access
       const channel = await Channel.findById(channelId);
       
       if (!channel) {
         return socket.emit("error", { message: "Channel not found" });
       }
       
-      // Check if private channel & verify access
-      if (channel.isPrivate) {
-        const hasAccess = channel.createdBy.toString() === userId ||
-          channel.allowedUsers.some(id => id.toString() === userId);
-        
-        if (!hasAccess) {
-          return socket.emit("error", { message: "Access denied to private channel" });
-        }
+      if (!channel.isPrivate) {
+        return socket.emit("error", { message: "This is not a private channel" });
       }
       
-      // Join socket room for this channel
+      // Check if user has access
+      const hasAccess = channel.createdBy.toString() === userId ||
+        channel.allowedUsers.some(id => id.toString() === userId);
+      
+      if (!hasAccess) {
+        return socket.emit("error", { message: "Access denied to private channel" });
+      }
+      
+      // Join socket room
       socket.join(channelId);
       
       // Track user in channel
@@ -138,10 +188,10 @@ io.on("connection", (socket) => {
         users: channelUsersList
       });
       
-      console.log(`User ${userId} joined channel ${channelId}`);
+      console.log(`User ${userId} joined private channel ${channelId}`);
     } catch (error) {
-      console.error("Error joining channel:", error);
-      socket.emit("error", { message: "Failed to join channel" });
+      console.error("Error joining private channel:", error);
+      socket.emit("error", { message: "Failed to join private channel" });
     }
   });
   
@@ -169,29 +219,95 @@ io.on("connection", (socket) => {
   });
   
   // Send message to channel
-  socket.on("sendMessage", ({ channelId, message, timestamp }) => {
+  socket.on("sendMessage", async ({ channelId, message, timestamp }) => {
     if (!message.trim()) return;
     
-    // Broadcast to everyone in the channel except sender
-    socket.to(channelId).emit("receiveMessage", {
-      channelId,
-      message,
-      sender: {
-        userId,
-        username: socket.username
-      },
-      timestamp: timestamp || new Date().toISOString()
-    });
+    try {
+      const channel = await Channel.findById(channelId);
+      
+      if (!channel) {
+        return socket.emit("error", { message: "Channel not found" });
+      }
+      
+      // For private channels, verify access
+      if (channel.isPrivate) {
+        const hasAccess = channel.createdBy.toString() === userId ||
+          channel.allowedUsers.some(id => id.toString() === userId);
+        
+        if (!hasAccess) {
+          return socket.emit("error", { message: "Access denied to private channel" });
+        }
+      }
+      
+      // Get sender info
+      const sender = await User.findById(userId).select("username avatar");
+      
+      // Prepare message data
+      const messageData = {
+        channelId,
+        message,
+        sender: {
+          userId,
+          username: sender?.username || socket.username,
+          avatar: sender?.avatar
+        },
+        timestamp: timestamp || new Date().toISOString()
+      };
+      
+      // For private channels, send only to allowed users
+      if (channel.isPrivate) {
+        const allowedUserIds = [
+          channel.createdBy.toString(),
+          ...channel.allowedUsers.map(id => id.toString())
+        ];
+        
+        // Send to all online allowed users
+        allowedUserIds.forEach(allowedUserId => {
+          const receiverSocketId = userSocketMap[allowedUserId];
+          if (receiverSocketId) {
+            io.to(receiverSocketId).emit("receiveMessage", messageData);
+          }
+        });
+      } else {
+        // For public channels, broadcast to all users in the channel
+        socket.to(channelId).emit("receiveMessage", messageData);
+      }
+      
+    } catch (error) {
+      console.error("Error sending message:", error);
+      socket.emit("error", { message: "Failed to send message" });
+    }
   });
   
   // Send typing indicator
-  socket.on("typing", ({ channelId, isTyping }) => {
-    socket.to(channelId).emit("userTyping", {
-      channelId,
-      userId,
-      username: socket.username,
-      isTyping
-    });
+  socket.on("typing", async ({ channelId, isTyping }) => {
+    try {
+      const channel = await Channel.findById(channelId);
+      
+      if (!channel) {
+        return socket.emit("error", { message: "Channel not found" });
+      }
+      
+      // For private channels, verify access
+      if (channel.isPrivate) {
+        const hasAccess = channel.createdBy.toString() === userId ||
+          channel.allowedUsers.some(id => id.toString() === userId);
+        
+        if (!hasAccess) {
+          return socket.emit("error", { message: "Access denied to private channel" });
+        }
+      }
+      
+      socket.to(channelId).emit("userTyping", {
+        channelId,
+        userId,
+        username: socket.username,
+        isTyping
+      });
+    } catch (error) {
+      console.error("Error sending typing indicator:", error);
+      socket.emit("error", { message: "Failed to send typing indicator" });
+    }
   });
   
   // Direct message
@@ -216,6 +332,7 @@ io.on("connection", (socket) => {
     
     // Remove from online users
     delete userSocketMap[userId];
+    delete userWorkspaceMap[userId];
     
     // Remove from all channels
     Object.keys(channelUsers).forEach(channelId => {
@@ -246,4 +363,4 @@ io.on("connection", (socket) => {
   });
 });
 
-export { io, app, server };
+export { io, app, server, userSocketMap, channelUsers, userWorkspaceMap };

@@ -8,7 +8,6 @@ import {
   addUserToPrivateChannel,
   removeUserFromPrivateChannel,
 } from "./channels.controller.js";
-import { authenticate } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import {
   validateChannelId,
@@ -71,8 +70,7 @@ const router = express.Router();
  *         description: Server error
  */
 router.post(
-  "/workspace/:workspaceId",
-  authenticate,
+  "/:workspaceId",
   validateCreateChannel,
   validate,
   createChannel
@@ -101,7 +99,7 @@ router.post(
  *       500:
  *         description: Server error
  */
-router.get("/workspace/:workspaceId", authenticate, getWorkspaceChannels);
+router.get("/:workspaceId", getWorkspaceChannels);
 
 /**
  * @swagger
@@ -132,7 +130,7 @@ router.get("/workspace/:workspaceId", authenticate, getWorkspaceChannels);
  */
 router.get(
   "/:channelId",
-  authenticate,
+
   validateChannelId,
   validate,
   checkChannelAccess,
@@ -166,13 +164,7 @@ router.get(
  *       500:
  *         description: Server error
  */
-router.delete(
-  "/:channelId",
-  authenticate,
-  validateChannelId,
-  validate,
-  deleteChannel
-);
+router.delete("/:channelId", validateChannelId, validate, deleteChannel);
 
 /**
  * @swagger
@@ -211,7 +203,6 @@ router.delete(
  */
 router.post(
   "/:channelId/users/:userId",
-  authenticate,
   validateChannelId,
   validateUserId,
   validate,
@@ -255,7 +246,6 @@ router.post(
  */
 router.delete(
   "/:channelId/users/:userId",
-  authenticate,
   validateChannelId,
   validateUserId,
   validate,
