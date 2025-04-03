@@ -228,6 +228,7 @@ export const sendWorkspaceInvite = async (req, res) => {
             workspaceName: workspace.workspaceName,
             inviteCode: workspace.inviteCode,
             baseUrl,
+            workspaceId,
           }),
         });
 

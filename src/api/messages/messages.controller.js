@@ -1,6 +1,6 @@
 import { Message } from "../../models/index.js";
 import cloudinary from "../../utils/cloudinary/cloudinary.js";
-import { io , getReceiverSocketId } from "../../config/socket.js";
+import { io, getReceiverSocketId } from "../../config/socket.js";
 import { Channel, User } from "../../models/index.js";
 
 export const getMessages = async (req, res) => {
@@ -21,7 +21,7 @@ export const getMessages = async (req, res) => {
 export const sendMessage = async (req, res) => {
   try {
     const { channelId } = req.params;
-    const { message } = req.body;
+    const { message, image } = req.body;
     const userId = req.user.id;
 
     // Find the channel
@@ -29,19 +29,25 @@ export const sendMessage = async (req, res) => {
     if (!channel) {
       return res.status(404).json({
         success: false,
-        message: "Channel not found"
+        message: "Channel not found",
       });
+    }
+    
+    let imageUrl = null;
+    if (image) {
+      imageUrl = await cloudinary.uploader.upload(image).secure_url;
     }
 
     // For private channels, verify access
     if (channel.isPrivate) {
-      const hasAccess = channel.createdBy.toString() === userId.toString() ||
-        channel.allowedUsers.some(id => id.toString() === userId.toString());
+      const hasAccess =
+        channel.createdBy.toString() === userId.toString() ||
+        channel.allowedUsers.some((id) => id.toString() === userId.toString());
 
       if (!hasAccess) {
         return res.status(403).json({
           success: false,
-          message: "You don't have permission in this private channel"
+          message: "You don't have permission in this private channel",
         });
       }
     }
@@ -51,7 +57,7 @@ export const sendMessage = async (req, res) => {
     if (!sender) {
       return res.status(404).json({
         success: false,
-        message: "Sender not found"
+        message: "Sender not found",
       });
     }
 
@@ -59,7 +65,8 @@ export const sendMessage = async (req, res) => {
     const newMessage = new Message({
       channelId,
       userId,
-      content: message
+      content: message,
+      image: imageUrl ,
     });
     await newMessage.save();
 
@@ -68,26 +75,26 @@ export const sendMessage = async (req, res) => {
       channelId,
       messageId: newMessage._id,
       message,
+      image: imageUrl,
       sender: {
         userId,
         username: sender.username,
-        avatar: sender.avatar
-      }
+        avatar: sender.avatar,
+      },
     };
 
     // Get the socket instance
-    const io = req.app.get('io');
-    console.log("Socket instance:", io);
+    const io = req.app.get("io");
 
     // For private channels, send only to allowed users
     if (channel.isPrivate) {
       const allowedUserIds = [
         channel.createdBy.toString(),
-        ...channel.allowedUsers.map(id => id.toString())
+        ...channel.allowedUsers.map((id) => id.toString()),
       ];
 
       // Send to all online allowed users
-      allowedUserIds.forEach(allowedUserId => {
+      allowedUserIds.forEach((allowedUserId) => {
         const receiverSocketId = io.userSocketMap?.[allowedUserId];
         if (receiverSocketId) {
           io.to(receiverSocketId).emit("receiveMessage", messageData);
@@ -101,14 +108,13 @@ export const sendMessage = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Message sent successfully",
-      data: messageData
+      data: messageData,
     });
-
   } catch (error) {
     console.error("Error in sendMessage controller:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to send message"
+      message: "Failed to send message",
     });
   }
 };
@@ -127,19 +133,21 @@ export const getChannelMessages = async (req, res) => {
     if (!channel) {
       return res.status(404).json({
         success: false,
-        message: "Channel not found"
+        message: "Channel not found",
       });
     }
 
     // For private channels, verify access
     if (channel.isPrivate) {
-      const hasAccess = channel.createdBy.toString() === userId.toString() ||
-        channel.allowedUsers.some(id => id.toString() === userId.toString());
+      const hasAccess =
+        channel.createdBy.toString() === userId.toString() ||
+        channel.allowedUsers.some((id) => id.toString() === userId.toString());
 
       if (!hasAccess) {
         return res.status(403).json({
           success: false,
-          message: "You don't have permission to view messages in this private channel"
+          message:
+            "You don't have permission to view messages in this private channel",
         });
       }
     }
@@ -149,7 +157,7 @@ export const getChannelMessages = async (req, res) => {
       .sort({ timestamp: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
-      .populate('senderId', 'username avatar');
+      .populate("senderId", "username avatar");
 
     // Get total count for pagination
     const total = await Message.countDocuments({ channelId });
@@ -161,16 +169,15 @@ export const getChannelMessages = async (req, res) => {
         pagination: {
           total,
           page: parseInt(page),
-          pages: Math.ceil(total / limit)
-        }
-      }
+          pages: Math.ceil(total / limit),
+        },
+      },
     });
-
   } catch (error) {
     console.error("Error in getChannelMessages controller:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to get messages"
+      message: "Failed to get messages",
     });
   }
 };
@@ -188,7 +195,7 @@ export const deleteMessage = async (req, res) => {
     if (!message) {
       return res.status(404).json({
         success: false,
-        message: "Message not found"
+        message: "Message not found",
       });
     }
 
@@ -196,7 +203,7 @@ export const deleteMessage = async (req, res) => {
     if (message.senderId.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
-        message: "You can only delete your own messages"
+        message: "You can only delete your own messages",
       });
     }
 
@@ -204,24 +211,23 @@ export const deleteMessage = async (req, res) => {
     await message.deleteOne();
 
     // Get the socket instance
-    const io = req.app.get('io');
+    const io = req.app.get("io");
 
     // Notify channel about deleted message
     io.to(message.channelId.toString()).emit("messageDeleted", {
       channelId: message.channelId,
-      messageId: message._id
+      messageId: message._id,
     });
 
     res.status(200).json({
       success: true,
-      message: "Message deleted successfully"
+      message: "Message deleted successfully",
     });
-
   } catch (error) {
     console.error("Error in deleteMessage controller:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to delete message"
+      message: "Failed to delete message",
     });
   }
 };

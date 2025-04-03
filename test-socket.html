@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Socket.IO Test</h1>
+    <div id="messages"></div>
+    <script>
+        // Set the JWT cookie
+        document.cookie = "jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2RjNDQ2NDJhOGI3NzI3M2UwMTBkNGMiLCJpYXQiOjE3NDM2NjY4MzYsImV4cCI6MTc0NDk2MjgzNn0.7MhRu_8gO5WIFAkl5e8po5tmIbzLsVQZydAGg7t9wqY; path=/";
+
+        // Connect to Socket.IO server
+        const socket = io('http://localhost:3001', {
+            transports: ['websocket'],
+            withCredentials: true
+        });
+
+        // Connection event
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            document.getElementById('messages').innerHTML += '<p>Connected to server</p>';
+        });
+
+        // Welcome message
+        socket.on('welcome', (data) => {
+            console.log('Welcome message:', data);
+            document.getElementById('messages').innerHTML += `<p>Welcome: ${JSON.stringify(data)}</p>`;
+        });
+
+        // Receive message event
+        socket.on('receiveMessage', (data) => {
+            console.log('Message received:', data);
+            document.getElementById('messages').innerHTML += `<p>Message: ${JSON.stringify(data)}</p>`;
+        });
+
+        // Error event
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+            document.getElementById('messages').innerHTML += `<p style="color: red">Error: ${JSON.stringify(error)}</p>`;
+        });
+
+        // Disconnect event
+        socket.on('disconnect', (reason) => {
+            console.log('Disconnected from server:', reason);
+            document.getElementById('messages').innerHTML += `<p>Disconnected from server: ${reason}</p>`;
+        });
+
+        // Connection error event
+        socket.on('connect_error', (error) => {
+            console.error('Connection error:', error);
+            document.getElementById('messages').innerHTML += `<p style="color: red">Connection error: ${error.message}</p>`;
+        });
+    </script>
+</body>
+</html> 

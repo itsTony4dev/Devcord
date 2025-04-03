@@ -14,8 +14,10 @@ app.use(cookieParser());
 
 const io = new Server(server, {
   cors: {
-    origin: [process.env.FRONTEND_URL],
-    credentials: true
+    origin: '*',
+    methods: ['GET', 'POST'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
   },
   pingTimeout: 60000, // Close connection after 60s of inactivity
 });
