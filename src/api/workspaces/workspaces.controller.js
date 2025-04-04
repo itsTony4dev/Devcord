@@ -203,8 +203,7 @@ export const sendWorkspaceInvite = async (req, res) => {
       await workspace.save();
     }
 
-    // Get frontend URL from environment
-    const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const baseUrl = "http://localhost:3001";
 
     // Keep track of successful invites
     const successfulInvites = [];
