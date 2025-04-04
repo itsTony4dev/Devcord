@@ -59,6 +59,12 @@ friendsSchema.statics.findFriends = async function(userId) {
   }).populate('userId friendId', 'username avatar');
   
   return friends.map(friendship => {
+    // Check if userId or friendId is null
+    if (!friendship.userId || !friendship.friendId) {
+      console.warn(`Found friendship with missing user reference: ${friendship._id}`);
+      return null;
+    }
+    
     // Determine which user is the friend (not the current user)
     const isCurrentUserTheRequester = friendship.userId._id.toString() === userIdStr;
     const friend = isCurrentUserTheRequester ? friendship.friendId : friendship.userId;
@@ -70,7 +76,7 @@ friendsSchema.statics.findFriends = async function(userId) {
       avatar: friend.avatar,
       createdAt: friendship.createdAt
     };
-  });
+  }).filter(friendship => friendship !== null); // Filter out null entries
 };
 
 const Friends = mongoose.model('Friends', friendsSchema);
