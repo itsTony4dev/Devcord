@@ -58,6 +58,25 @@ export const sendFriendRequest = async (req, res) => {
 
     await friendRequest.save();
 
+    // Get sender info for the real-time notification
+    const sender = await User.findById(userId).select("username avatar");
+
+    // Send real-time notification using Socket.IO
+    const io = req.app.get('io');
+    const receiverSocketId = io.userSocketMap[friendId];
+    
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("friendRequest", {
+        requestId: friendRequest._id,
+        user: {
+          id: userId,
+          username: sender.username,
+          avatar: sender.avatar
+        },
+        createdAt: friendRequest.createdAt
+      });
+    }
+
     res.status(201).json({
       success: true,
       message: "Friend request sent successfully",
@@ -153,7 +172,7 @@ export const acceptFriendRequest = async (req, res) => {
       _id: requestId,
       friendId: userId,
       status: 'pending'
-    });
+    }).populate('userId', 'username avatar');
 
     if (!request) {
       return res.status(404).json({
@@ -164,6 +183,25 @@ export const acceptFriendRequest = async (req, res) => {
 
     request.status = 'accepted';
     await request.save();
+
+    // Get user info for the real-time notification
+    const user = await User.findById(userId).select("username avatar");
+
+    // Send real-time notification using Socket.IO
+    const io = req.app.get('io');
+    const senderSocketId = io.userSocketMap[request.userId._id];
+    
+    if (senderSocketId) {
+      io.to(senderSocketId).emit("friendRequestAccepted", {
+        requestId: request._id,
+        user: {
+          id: userId,
+          username: user.username,
+          avatar: user.avatar
+        },
+        acceptedAt: new Date()
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -188,7 +226,7 @@ export const declineFriendRequest = async (req, res) => {
     const { requestId } = req.params;
     const userId = req.user.id;
 
-    const request = await Friends.findOneAndDelete({
+    const request = await Friends.findOne({
       _id: requestId,
       friendId: userId,
       status: 'pending'
@@ -198,6 +236,23 @@ export const declineFriendRequest = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Friend request not found"
+      });
+    }
+
+    // Store the sender ID before deleting
+    const senderId = request.userId;
+
+    // Delete the request
+    await Friends.findByIdAndDelete(requestId);
+
+    // Send real-time notification using Socket.IO
+    const io = req.app.get('io');
+    const senderSocketId = io.userSocketMap[senderId];
+    
+    if (senderSocketId) {
+      io.to(senderSocketId).emit("friendRequestDeclined", {
+        requestId,
+        declinedAt: new Date()
       });
     }
 

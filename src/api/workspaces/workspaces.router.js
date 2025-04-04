@@ -13,12 +13,15 @@ import {
   getWorkspaceMembers,
   sendWorkspaceInvite,
   getWorkspaceInvitedUsers,
+  removeWorkspaceMember,
 } from "./workspaces.controller.js";
 
 import {
   validateCreateWorkspace,
   validateUpdateWorkspace,
   validateWorkspaceId,
+  validatePromoteAdmin,
+  validateRemoveMember,
 } from "./workspaces.validation.js";
 
 import { validate } from "../../middleware/validate.js";
@@ -444,9 +447,9 @@ workspacesRouter.post("/:id/leave", leaveWorkspace);
 
 /**
  * @swagger
- * /api/workspaces/{id}/admin:
- *   put:
- *     summary: Update a user's role to admin in a workspace
+ * /api/workspaces/{id}/admins:
+ *   post:
+ *     summary: Promote users to admin role in a workspace
  *     tags: [Workspaces]
  *     security:
  *       - bearerAuth: []
@@ -464,14 +467,16 @@ workspacesRouter.post("/:id/leave", leaveWorkspace);
  *           schema:
  *             type: object
  *             required:
- *               - userId
+ *               - userIds
  *             properties:
- *               userId:
- *                 type: string
- *                 description: ID of the user to promote to admin
+ *               userIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of user IDs to promote to admin
  *     responses:
  *       200:
- *         description: User promoted to admin successfully
+ *         description: Users promoted to admin successfully
  *         content:
  *           application/json:
  *             schema:
@@ -481,14 +486,36 @@ workspacesRouter.post("/:id/leave", leaveWorkspace);
  *                   type: boolean
  *                 message:
  *                   type: string
+ *                 results:
+ *                   type: object
+ *                   properties:
+ *                     success:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     failed:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           userId:
+ *                             type: string
+ *                           reason:
+ *                             type: string
  *       403:
- *         description: Permission denied
+ *         description: Not authorized
  *       404:
- *         description: User or workspace not found
+ *         description: Workspace or user not found
  *       500:
- *         description: Internal server error
+ *         description: Server error
  */
-workspacesRouter.put("/:id/admin", validateWorkspaceId, updateWorkspaceAdmin);
+workspacesRouter.post(
+  "/:id/admins",
+  validateWorkspaceId,
+  validatePromoteAdmin,
+  validate,
+  updateWorkspaceAdmin
+);
 
 /**
  * @swagger
@@ -564,6 +591,64 @@ workspacesRouter.get(
   "/:id/invited-users",
   validateWorkspaceId,
   getWorkspaceInvitedUsers
+);
+
+/**
+ * @swagger
+ * /api/workspaces/{id}/members:
+ *   delete:
+ *     summary: Remove a member from a workspace
+ *     tags: [Workspaces]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Workspace ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: ID of the user to remove
+ *     responses:
+ *       200:
+ *         description: Member removed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Member removed from workspace successfully
+ *       400:
+ *         description: Invalid input
+ *       403:
+ *         description: Not authorized to remove this member
+ *       404:
+ *         description: Workspace or user not found
+ *       500:
+ *         description: Server error
+ */
+workspacesRouter.delete(
+  "/:id/members",
+  validateWorkspaceId,
+  validateRemoveMember,
+  validate,
+  removeWorkspaceMember
 );
 
 export default workspacesRouter;

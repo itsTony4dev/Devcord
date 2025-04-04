@@ -424,11 +424,15 @@ export const getUserWorkspaces = async (req, res) => {
   }
 };
 
+/**
+ * Promote one or more workspace members to admin role
+ */
 export const updateWorkspaceAdmin = async (req, res) => {
   try {
     const { id: workspaceId } = req.params;
-    const { userId: targetUserId } = req.body;
-
+    const { userIds } = req.body;
+    
+    // Check if current user is a member of the workspace
     const userWorkspace = await UserWorkspace.findOne({
       userId: req.user.id,
       workspaceId,
@@ -441,6 +445,7 @@ export const updateWorkspaceAdmin = async (req, res) => {
       });
     }
 
+    // Check if requester is admin or owner
     const isRequesterAdmin = await UserWorkspace.isAdmin(
       req.user.id,
       workspaceId
@@ -453,29 +458,69 @@ export const updateWorkspaceAdmin = async (req, res) => {
       });
     }
 
-    const isTargetMember = await UserWorkspace.isMember(
-      targetUserId,
-      workspaceId
-    );
+    // Ensure userIds is an array (for backward compatibility)
+    const targetUserIds = Array.isArray(userIds) ? userIds : [userIds];
+    
+    // Track results
+    const results = {
+      success: [],
+      failed: []
+    };
 
-    if (!isTargetMember) {
-      return res.status(404).json({
-        success: false,
-        message: "Target user is not a member of this workspace",
-      });
+    // Process each user
+    for (const userId of targetUserIds) {
+      try {
+        // Check if user is a member
+        const isTargetMember = await UserWorkspace.isMember(
+          userId,
+          workspaceId
+        );
+
+        if (!isTargetMember) {
+          results.failed.push({
+            userId,
+            reason: "User is not a member of this workspace"
+          });
+          continue;
+        }
+
+        // Check if user is already an admin
+        const isAlreadyAdmin = await UserWorkspace.isAdmin(
+          userId,
+          workspaceId
+        );
+
+        if (isAlreadyAdmin) {
+          results.failed.push({
+            userId,
+            reason: "User is already an admin"
+          });
+          continue;
+        }
+
+        // Update user role to admin
+        await UserWorkspace.findOneAndUpdate(
+          { userId, workspaceId },
+          { role: "admin" }
+        );
+
+        results.success.push(userId);
+      } catch (error) {
+        results.failed.push({
+          userId,
+          reason: "Failed to update user role"
+        });
+      }
     }
 
-    await UserWorkspace.findOneAndUpdate(
-      { userId: targetUserId, workspaceId },
-      { role: "admin" }
-    );
-
+    // Return results
     return res.status(200).json({
       success: true,
-      message: "User has been promoted to admin",
+      message: `${results.success.length} user(s) promoted to admin role`,
+      results
     });
   } catch (error) {
-    console.error("Error in setWorkspaceAdmin controller ", error.message);
+    console.error("Error in updateWorkspaceAdmin controller:", error.message);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -519,7 +564,109 @@ export const getWorkspaceMembers = async (req, res) => {
   }
 };
 
-// TODO: export const removeWorkspaceMember = async (req, res) => {};
+/**
+ * Remove a member from a workspace
+ */
+export const removeWorkspaceMember = async (req, res) => {
+  try {
+    const { id: workspaceId } = req.params;
+    const { userId: memberIdToRemove } = req.body;
+
+    // Validate input
+    if (!memberIdToRemove) {
+      return res.status(400).json({
+        success: false,
+        message: "Member ID is required"
+      });
+    }
+
+    // Check if workspace exists
+    const workspace = await Workspace.findById(workspaceId);
+    if (!workspace) {
+      return res.status(404).json({
+        success: false,
+        message: "Workspace not found"
+      });
+    }
+
+    // Check if requester is a member of the workspace
+    const requesterWorkspace = await UserWorkspace.findOne({
+      userId: req.user.id,
+      workspaceId
+    });
+
+    if (!requesterWorkspace) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not a member of this workspace"
+      });
+    }
+
+    // Check if requester has admin rights
+    const isRequesterAdmin = await UserWorkspace.isAdmin(
+      req.user.id,
+      workspaceId
+    );
+
+    if (!isRequesterAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "You must be an admin or owner to remove members"
+      });
+    }
+
+    // Check if member to remove exists in the workspace
+    const memberToRemove = await UserWorkspace.findOne({
+      userId: memberIdToRemove,
+      workspaceId
+    });
+
+    if (!memberToRemove) {
+      return res.status(404).json({
+        success: false,
+        message: "User is not a member of this workspace"
+      });
+    }
+
+    // Check if trying to remove the workspace owner
+    if (memberToRemove.role === "owner") {
+      return res.status(403).json({
+        success: false,
+        message: "Cannot remove the workspace owner"
+      });
+    }
+
+    // Check if admin trying to remove another admin (only owners can do this)
+    if (
+      memberToRemove.role === "admin" && 
+      requesterWorkspace.role !== "owner"
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the workspace owner can remove admins"
+      });
+    }
+
+    // Remove the member
+    await UserWorkspace.findOneAndDelete({
+      userId: memberIdToRemove,
+      workspaceId
+    });
+
+    // Return success response
+    return res.status(200).json({
+      success: true,
+      message: "Member removed from workspace successfully"
+    });
+    
+  } catch (error) {
+    console.error("Error in removeWorkspaceMember controller:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+};
 
 export const getWorkspaceInvitedUsers = async (req, res) => {
   try {
@@ -550,3 +697,4 @@ export const getWorkspaceInvitedUsers = async (req, res) => {
     });
   }
 };
+

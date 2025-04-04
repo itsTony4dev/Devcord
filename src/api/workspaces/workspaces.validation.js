@@ -44,3 +44,31 @@ export const validateWorkspaceId = [
     .isMongoId()
     .withMessage("Invalid Workspace ID format"),
 ];
+
+/**
+ * Validation rules for promoting workspace members to admin
+ */
+export const validatePromoteAdmin = [
+  body("userIds")
+    .isArray({ min: 1 })
+    .withMessage("At least one user ID must be provided")
+    .custom((userIds) => {
+      if (!Array.isArray(userIds)) {
+        return false;
+      }
+      // Check that all IDs are valid MongoDB ObjectIds
+      return userIds.every((id) => /^[0-9a-fA-F]{24}$/.test(id));
+    })
+    .withMessage("All user IDs must be valid"),
+];
+
+/**
+ * Validation rules for removing workspace members
+ */
+export const validateRemoveMember = [
+  body("userId")
+    .notEmpty()
+    .withMessage("User ID is required")
+    .isMongoId()
+    .withMessage("Invalid user ID format")
+];

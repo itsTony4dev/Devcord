@@ -328,6 +328,44 @@ io.on("connection", async (socket) => {
     }
   });
   
+  // User started/stopped typing in a direct message
+  socket.on("typing", ({ receiverId, isTyping }) => {
+    try {
+      const receiverSocketId = userSocketMap[receiverId];
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("typingIndicator", {
+          senderId: userId,
+          isTyping,
+          sender: {
+            username: socket.username,
+            avatar: socket.handshake.auth?.avatar || null
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error in typing event handler:", error);
+      socket.emit("error", { message: "Failed to send typing indicator" });
+    }
+  });
+  
+  // Mark direct messages as read
+  socket.on("markAsRead", async ({ senderId }) => {
+    try {
+      // This is just a notification, the actual update is handled by the API
+      const senderSocketId = userSocketMap[senderId];
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("messagesRead", {
+          senderId,
+          receiverId: userId,
+          readAt: new Date()
+        });
+      }
+    } catch (error) {
+      console.error("Error in markAsRead event handler:", error);
+      socket.emit("error", { message: "Failed to mark messages as read" });
+    }
+  });
+  
   // Handle disconnection
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);

@@ -66,6 +66,7 @@ messageSchema.index({ channelId: 1, createdAt: -1 });
 messageSchema.index({ threadId: 1, createdAt: 1 });
 messageSchema.index({ userId: 1 });
 messageSchema.index({ mentions: 1 });
+messageSchema.index({ content: 'text' });
 
 // Static method to find messages in a channel
 messageSchema.statics.findChannelMessages = async function(channelId, limit = 50, before = null) {

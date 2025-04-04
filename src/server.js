@@ -21,6 +21,7 @@ import { authenticate } from './middleware/auth.js';
 import channelsRouter from './api/channels/channels.router.js';
 import friendsRouter from './api/friends/friends.router.js';
 import messagesRouter from './api/messages/messages.router.js';
+import directMessagesRouter from './api/directMessages/directMessages.router.js';
 import { io, app, server } from './config/socket.js';
 
 // Attach socket instance to app for access in controllers
@@ -53,6 +54,7 @@ app.use('/api/workspaces', workspacesRouter);
 app.use('/api/workspace/channels', channelsRouter);
 app.use('/api/friends', friendsRouter);
 app.use('/api/messages', messagesRouter);
+app.use('/api/direct-messages', directMessagesRouter);
 
 // Health Check
 app.get('/health', (_req, res) => {
