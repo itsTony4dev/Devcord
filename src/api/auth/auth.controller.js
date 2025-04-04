@@ -58,9 +58,11 @@ export const signup = async (req, res) => {
         .json({ success: false, message: "Email is not valid" });
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = new User({
       username,
-      password,
+      password: hashedPassword,
       email,
     });
 
