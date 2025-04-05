@@ -427,104 +427,113 @@ export const getUserWorkspaces = async (req, res) => {
  * Promote one or more workspace members to admin role
  */
 export const updateWorkspaceAdmin = async (req, res) => {
-  try {
-    const { id: workspaceId } = req.params;
-    const { userIds } = req.body;
-    
-    // Check if current user is a member of the workspace
-    const userWorkspace = await UserWorkspace.findOne({
-      userId: req.user.id,
-      workspaceId,
-    });
+   try {
+     const { id: workspaceId } = req.params;
+     const { userIds } = req.body;
 
-    if (!userWorkspace) {
-      return res.status(404).json({
-        success: false,
-        message: "You are not a member of this workspace",
-      });
-    }
+     // Check if current user is a member of the workspace
+     const userWorkspace = await UserWorkspace.findOne({
+       userId: req.user.id,
+       workspaceId,
+     });
 
-    // Check if requester is admin or owner
-    const isRequesterAdmin = await UserWorkspace.isAdmin(
-      req.user.id,
-      workspaceId
-    );
+     if (!userWorkspace) {
+       return res.status(404).json({
+         success: false,
+         message: "You are not a member of this workspace",
+       });
+     }
 
-    if (!isRequesterAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: "You must be an admin or owner to set workspace admins",
-      });
-    }
+     // Check if requester is admin or owner
+     const isRequesterAdmin = await UserWorkspace.isAdmin(
+       req.user.id,
+       workspaceId
+     );
 
-    // Ensure userIds is an array (for backward compatibility)
-    const targetUserIds = Array.isArray(userIds) ? userIds : [userIds];
-    
-    // Track results
-    const results = {
-      success: [],
-      failed: []
-    };
+     if (!isRequesterAdmin) {
+       return res.status(403).json({
+         success: false,
+         message: "You must be an admin or owner to modify workspace roles",
+       });
+     }
 
-    // Process each user
-    for (const userId of targetUserIds) {
-      try {
-        // Check if user is a member
-        const isTargetMember = await UserWorkspace.isMember(
-          userId,
-          workspaceId
-        );
+     // Ensure userIds is an array (for backward compatibility)
+     const targetUserIds = Array.isArray(userIds) ? userIds : [userIds];
 
-        if (!isTargetMember) {
-          results.failed.push({
-            userId,
-            reason: "User is not a member of this workspace"
-          });
-          continue;
-        }
+     // Track results
+     const results = {
+       success: [],
+       failed: [],
+     };
 
-        // Check if user is already an admin
-        const isAlreadyAdmin = await UserWorkspace.isAdmin(
-          userId,
-          workspaceId
-        );
+     // Process each user
+     for (const userId of targetUserIds) {
+       try {
+         // Check if user is a member
+         const isTargetMember = await UserWorkspace.isMember(
+           userId,
+           workspaceId
+         );
 
-        if (isAlreadyAdmin) {
-          results.failed.push({
-            userId,
-            reason: "User is already an admin"
-          });
-          continue;
-        }
+         if (!isTargetMember) {
+           results.failed.push({
+             userId,
+             reason: "User is not a member of this workspace",
+           });
+           continue;
+         }
 
-        // Update user role to admin
-        await UserWorkspace.findOneAndUpdate(
-          { userId, workspaceId },
-          { role: "admin" }
-        );
+         // Get user's current role
+         const userWorkspaceRecord = await UserWorkspace.findOne({
+           userId,
+           workspaceId,
+         });
 
-        results.success.push(userId);
-      } catch (error) {
-        results.failed.push({
-          userId,
-          reason: "Failed to update user role"
-        });
-      }
-    }
+         const currentRole = userWorkspaceRecord.role;
 
-    // Return results
-    return res.status(200).json({
-      success: true,
-      message: `${results.success.length} user(s) promoted to admin role`,
-      results
-    });
-  } catch (error) {
-    console.error("Error in updateWorkspaceAdmin controller:", error.message);
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-    });
-  }
+         // Prevent changing owner's role
+         if (currentRole === "owner") {
+           results.failed.push({
+             userId,
+             reason: "Cannot change role of workspace owner",
+           });
+           continue;
+         }
+
+         const newRole = currentRole === "admin" ? "member" : "admin";
+
+         // Update user role
+         await UserWorkspace.findOneAndUpdate(
+           { userId, workspaceId },
+           { role: newRole }
+         );
+
+         results.success.push({
+           userId,
+           oldRole: currentRole,
+           newRole: newRole,
+         });
+       } catch (error) {
+         results.failed.push({
+           userId,
+           reason: "Failed to update user role",
+         });
+       }
+     }
+
+     // Return results
+     return res.status(200).json({
+       success: true,
+       message: `${results.success.length} user role(s) toggled successfully`,
+       results,
+     });
+   } catch (error) {
+     console.error("Error in toggleWorkspaceRole controller:", error.message);
+     return res.status(500).json({
+       success: false,
+       message: "Internal Server Error",
+     });
+   }
 };
 
 export const getWorkspaceMembers = async (req, res) => {
