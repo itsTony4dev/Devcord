@@ -9,11 +9,12 @@ import {
   joinWorkspace,
   leaveWorkspace,
   getUserWorkspaces,
-  updateWorkspaceAdmin,
+  toggleWorkspaceRole,
   getWorkspaceMembers,
   sendWorkspaceInvite,
   getWorkspaceInvitedUsers,
   removeWorkspaceMember,
+  toggleWorkspaceRole,
 } from "./workspaces.controller.js";
 
 import {
@@ -509,12 +510,12 @@ workspacesRouter.post("/:id/leave", leaveWorkspace);
  *       500:
  *         description: Server error
  */
-workspacesRouter.post(
+workspacesRouter.put(
   "/:id/admins",
   validateWorkspaceId,
   validatePromoteAdmin,
   validate,
-  updateWorkspaceAdmin
+  toggleWorkspaceRole
 );
 
 /**
