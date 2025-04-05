@@ -9,12 +9,11 @@ import {
   joinWorkspace,
   leaveWorkspace,
   getUserWorkspaces,
-  toggleWorkspaceRole,
   getWorkspaceMembers,
   sendWorkspaceInvite,
   getWorkspaceInvitedUsers,
   removeWorkspaceMember,
-  toggleWorkspaceRole,
+  toggleWorkspaceRole
 } from "./workspaces.controller.js";
 
 import {
