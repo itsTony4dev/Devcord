@@ -18,6 +18,7 @@
   "description": "A real-time messaging application built with Express.js and Socket.IO",
   "dependencies": {
     "bcryptjs": "^3.0.2",
+    "cheerio": "^1.0.0",
     "cloudinary": "^2.6.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -30,6 +31,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.11.0",
     "nodemailer": "^6.10.0",
+    "puppeteer": "^24.6.1",
     "socket.io": "^4.7.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"

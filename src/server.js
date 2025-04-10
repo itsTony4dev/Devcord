@@ -23,7 +23,7 @@ import friendsRouter from './api/friends/friends.router.js';
 import messagesRouter from './api/messages/messages.router.js';
 import directMessagesRouter from './api/directMessages/directMessages.router.js';
 import { io, app, server } from './config/socket.js';
-
+import scraperRouter from './api/scraper/scraper.router.js';
 // Attach socket instance to app for access in controllers
 app.set('io', io);
 
@@ -55,6 +55,8 @@ app.use('/api/workspace/channels', channelsRouter);
 app.use('/api/friends', friendsRouter);
 app.use('/api/messages', messagesRouter);
 app.use('/api/direct-messages', directMessagesRouter);
+app.use('/api/scraper', scraperRouter);
+
 
 // Health Check
 app.get('/health', (_req, res) => {
