@@ -36,6 +36,8 @@ export const getUserById = async (req, res) => {
       "-password -isBlocked -blockUntil -blockCount"
     );
 
+    
+
     if (!user) {
       return res
         .status(404)
@@ -65,7 +67,7 @@ export const getUsers = async (req, res) => {
 
     const users = await User.find({
       ...query,
-      _id: { $ne: req.user._id }, 
+      _id: { $ne: req.user._id },
     })
       .select("username avatar skills bio isVerified")
       .limit(limit * 1)
@@ -300,9 +302,14 @@ export const updateAvatar = async (req, res) => {
     const { avatar } = req.body;
 
     if (!avatar) {
+      await User.findByIdAndUpdate(
+        req.user.id,
+        { $set: { avatar: "" } },
+        { new: true }
+      );
       return res
-        .status(400)
-        .json({ success: false, message: "Avatar URL is required" });
+        .status(200)
+        .json({ success: true, message: "Avatar restored successfully" });
     }
 
     const uploadResponse = await cloudinary.uploader.upload(avatar);
