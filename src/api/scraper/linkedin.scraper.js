@@ -1,25 +1,7 @@
 import puppeteer from "puppeteer";
 
-// Helper function for delays (compatible with all Puppeteer versions)
+
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-
-const jobCategories = [
-  "Frontend",
-  "Full-Stack",
-  "Backend",
-  "Mobile",
-  "Blockchain",
-  "UI/UX",
-  "DevOps",
-  "Game",
-  "QA",
-  "AI/ML",
-  "Software",
-  "Cybersecurity",
-  "Data",
-  "IT",
-];
 
 // Keywords or aliases for each category
 const categoryAliases = {
@@ -44,7 +26,6 @@ function categorizeJob(title) {
 
   const lowerTitle = title.toLowerCase();
 
-  // Priority-based scanning (AI/ML should be checked before Software, etc.)
   for (const [category, keywords] of Object.entries(categoryAliases)) {
     for (const keyword of keywords) {
       if (lowerTitle.includes(keyword)) {
@@ -100,11 +81,9 @@ const scrapeLinkedInJobs = async () => {
       Connection: "keep-alive",
     });
 
-    // Disable unnecessary resource loading to speed up page loads
     await page.setRequestInterception(true);
     page.on("request", (request) => {
       const resourceType = request.resourceType();
-      // Block non-essential resources
       if (["image", "stylesheet", "font", "media"].includes(resourceType)) {
         request.abort();
       } else {
@@ -153,7 +132,6 @@ const scrapeLinkedInJobs = async () => {
             : "";
           const link = linkElement ? linkElement.href : null;
 
-          // Check if job is in Lebanon
           const isInLebanon = location.toLowerCase().includes("lebanon");
 
           return {
@@ -182,7 +160,6 @@ const scrapeLinkedInJobs = async () => {
     console.log(`Successfully extracted ${lebanonJobs.length} jobs in Lebanon`);
 
     // OPTIMIZATION: Process job details in batches with a single page
-    // Create a reusable detail page
     const detailPage = await browser.newPage();
 
 
@@ -205,7 +182,6 @@ const scrapeLinkedInJobs = async () => {
 
     detailPage.setDefaultNavigationTimeout(15000);
 
-    // Process jobs in smaller batches for more efficient processing
     const BATCH_SIZE = 5;
     for (let i = 0; i < lebanonJobs.length; i += BATCH_SIZE) {
       const batch = lebanonJobs.slice(i, i + BATCH_SIZE);
@@ -243,7 +219,6 @@ const scrapeLinkedInJobs = async () => {
 
           // Double check that this job is actually in Lebanon
           const confirmedLocation = await detailPage.evaluate(() => {
-            // Try to get location from multiple possible elements
             const locationElements = [
               document.querySelector(
                 ".job-details-jobs-unified-top-card__bullet"
@@ -395,7 +370,6 @@ const scrapeLinkedInJobs = async () => {
         }
       }
 
-      // Add a slightly longer delay between batches
       if (i + BATCH_SIZE < lebanonJobs.length) {
         console.log("Waiting between batches to avoid rate limiting...");
         await delay(1500);
@@ -407,9 +381,7 @@ const scrapeLinkedInJobs = async () => {
     // Final filtering to ensure only Lebanon jobs are included
     const finalJobs = lebanonJobs.filter((job) => job.isInLebanon);
 
-    // Clean up the job objects to remove unwanted fields
     const cleanedJobs = finalJobs.map((job) => {
-      // Create a new object with only the fields we want to keep
       return {
         title: job.title,
         category: job.category,
