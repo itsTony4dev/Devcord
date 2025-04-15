@@ -19,7 +19,6 @@ const messageSchema = new Schema({
   },
   content: {
     type: String,
-    required: [true, 'Message content is required'],
     maxlength: [5000, 'Message content cannot exceed 5000 characters']
   },
   image:{
@@ -30,7 +29,7 @@ const messageSchema = new Schema({
     type: Boolean,
     default: false
   },
-  language: {
+  lang: {
     type: String,
     default: null
   },

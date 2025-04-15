@@ -12,8 +12,15 @@ export const sendMessage = async (req, res) => {
     const { message, image } = req.body;
     const userId = req.user.id;
 
+    if (!message && !image) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot send empty message",
+      });
+    }
+
     // Find the channel
-    const channel = await Channel.findById(channelId); 
+    const channel = await Channel.findById(channelId);
     if (!channel) {
       return res.status(404).json({
         success: false,
@@ -340,7 +347,8 @@ export const reactToMessage = async (req, res) => {
       if (!hasAccess) {
         return res.status(403).json({
           success: false,
-          message: "You don't have permission to react to messages in this private channel",
+          message:
+            "You don't have permission to react to messages in this private channel",
         });
       }
     }
@@ -352,14 +360,14 @@ export const reactToMessage = async (req, res) => {
 
     if (existingReactionIndex !== -1) {
       // Check if user already reacted with this emoji
-      const userIndex = message.reactions[existingReactionIndex].users.findIndex(
-        (id) => id.toString() === userId.toString()
-      );
+      const userIndex = message.reactions[
+        existingReactionIndex
+      ].users.findIndex((id) => id.toString() === userId.toString());
 
       if (userIndex !== -1) {
         // User already reacted, so remove their reaction
         message.reactions[existingReactionIndex].users.pull(userId);
-        
+
         // If no users left for this reaction, remove the reaction
         if (message.reactions[existingReactionIndex].users.length === 0) {
           message.reactions.splice(existingReactionIndex, 1);
@@ -449,11 +457,13 @@ export const pinMessage = async (req, res) => {
 
     // Check if user has permission to pin (channel owner or admin)
     const isOwner = channel.createdBy.toString() === userId.toString();
-    
+
     // Check if user is admin (you may want to adjust this based on your admin check logic)
-    const isAdmin = channel.admins && channel.admins.some(
-      (adminId) => adminId.toString() === userId.toString()
-    );
+    const isAdmin =
+      channel.admins &&
+      channel.admins.some(
+        (adminId) => adminId.toString() === userId.toString()
+      );
 
     if (!isOwner && !isAdmin) {
       return res.status(403).json({
@@ -497,7 +507,9 @@ export const pinMessage = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: message.isPinned ? "Message pinned successfully" : "Message unpinned successfully",
+      message: message.isPinned
+        ? "Message pinned successfully"
+        : "Message unpinned successfully",
       data: pinData,
     });
   } catch (error) {
@@ -543,7 +555,8 @@ export const searchMessages = async (req, res) => {
       if (!hasAccess) {
         return res.status(403).json({
           success: false,
-          message: "You don't have permission to search messages in this private channel",
+          message:
+            "You don't have permission to search messages in this private channel",
         });
       }
     }
