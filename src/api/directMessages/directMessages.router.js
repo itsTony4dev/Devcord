@@ -5,7 +5,8 @@ import {
   deleteDirectMessage,
   getUnreadMessagesCount,
   markMessagesAsRead,
-  sendTypingIndicator
+  sendTypingIndicator,
+  searchMessages
 } from "./directMessages.controller.js";
 import { validate } from "../../middleware/validate.js";
 import {
@@ -13,7 +14,8 @@ import {
   getConversationValidation,
   deleteDirectMessageValidation,
   markMessagesAsReadValidation,
-  sendTypingIndicatorValidation
+  sendTypingIndicatorValidation,
+  searchMessagesValidation
 } from "./directMessages.validation.js";
 
 const directMessagesRouter = express.Router();
@@ -217,6 +219,49 @@ directMessagesRouter.post(
   sendTypingIndicatorValidation,
   validate,
   sendTypingIndicator
+);
+
+/**
+ * @swagger
+ * /api/directMessages/search/{friendId}:
+ *   get:
+ *     summary: Search messages in a conversation
+ *     tags: [Direct Messages]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: friendId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Search results with pagination
+ *       403:
+ *         description: Not authorized to search messages
+ *       404:
+ *         description: Friend not found
+ */
+directMessagesRouter.get(
+  "/search/:friendId",
+  validate(searchMessagesValidation),
+  searchMessages
 );
 
 export default directMessagesRouter; 

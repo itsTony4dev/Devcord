@@ -30,7 +30,8 @@ export const sendMessage = async (req, res) => {
 
     let imageUrl = null;
     if (image) {
-      imageUrl = await cloudinary.uploader.upload(image).secure_url;
+      imageUrl = await cloudinary.uploader.upload(image);
+      imageUrl = imageUrl.secure_url;
     }
 
     // For private channels, verify access
@@ -195,7 +196,7 @@ export const deleteMessage = async (req, res) => {
     }
 
     // Check if user is the sender
-    if (message.senderId.toString() !== userId.toString()) {
+    if (message.userId.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
         message: "You can only delete your own messages",

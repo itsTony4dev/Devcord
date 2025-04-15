@@ -378,4 +378,89 @@ export const sendTypingIndicator = async (req, res) => {
       message: "Failed to send typing indicator",
     });
   }
+};
+
+/**
+ * Search messages in a conversation
+ */
+export const searchMessages = async (req, res) => {
+  try {
+    const { friendId } = req.params;
+    const { query, page = 1, limit = 20 } = req.query;
+    const userId = req.user._id;
+
+    // Check if users are friends
+    const areFriends = await Friends.findOne({
+      $or: [
+        { userId, friendId, status: 'accepted' },
+        { userId: friendId, friendId: userId, status: 'accepted' }
+      ]
+    });
+
+    if (!areFriends) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only search messages with friends",
+      });
+    }
+
+    // Create search query
+    const searchQuery = {
+      $or: [
+        { senderId: userId, receiverId: friendId },
+        { senderId: friendId, receiverId: userId }
+      ],
+      content: { $regex: query, $options: 'i' }
+    };
+
+    // Get total count for pagination
+    const total = await DirectMessage.countDocuments(searchQuery);
+
+    // Get paginated results
+    const messages = await DirectMessage.find(searchQuery)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate('senderId', 'username avatar')
+      .populate('receiverId', 'username avatar');
+
+    // Format the response
+    const formattedMessages = messages.map(message => ({
+      messageId: message._id,
+      senderId: message.senderId._id,
+      receiverId: message.receiverId._id,
+      content: message.content,
+      isCode: message.isCode,
+      language: message.language,
+      createdAt: message.createdAt,
+      sender: {
+        username: message.senderId.username,
+        avatar: message.senderId.avatar,
+      },
+      receiver: {
+        username: message.receiverId.username,
+        avatar: message.receiverId.avatar,
+      }
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        messages: formattedMessages,
+        pagination: {
+          total,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(total / limit)
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error in searchMessages controller:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to search messages",
+      error: error.message
+    });
+  }
 }; 
