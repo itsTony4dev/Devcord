@@ -15,7 +15,7 @@ import {
   deleteDirectMessageValidation,
   markMessagesAsReadValidation,
   sendTypingIndicatorValidation,
-  searchMessagesValidation
+  
 } from "./directMessages.validation.js";
 
 const directMessagesRouter = express.Router();
@@ -260,7 +260,6 @@ directMessagesRouter.post(
  */
 directMessagesRouter.get(
   "/search/:friendId",
-  validate(searchMessagesValidation),
   searchMessages
 );
 
