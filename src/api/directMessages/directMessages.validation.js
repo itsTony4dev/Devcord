@@ -1,5 +1,4 @@
 import { body, param, query } from "express-validator";
-import Joi from "joi";
 
 export const sendDirectMessageValidation = [
   param("receiverId")
@@ -68,13 +67,3 @@ export const sendTypingIndicatorValidation = [
     .withMessage("isTyping must be a boolean")
 ];
 
-export const searchMessagesValidation = {
-  params: Joi.object({
-    friendId: Joi.string().required().hex().length(24),
-  }),
-  query: Joi.object({
-    query: Joi.string().required().min(1),
-    page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100).default(20),
-  }),
-}; 
