@@ -17,22 +17,56 @@ export function initializeDMNamespace(io) {
     dmUserSocketMap[socket.user.id] = socket.id;
 
     // Send direct message
-    socket.on("sendMessage", async ({ receiverId, message }) => {
+    socket.on("sendMessage", async ({ receiverId, message }, callback) => {
       try {
+        console.log(`Socket message event received from ${socket.user.username} to ${receiverId}:`, message);
+        
+        // Validate input
+        if (!receiverId) {
+          console.error("Missing receiverId in sendMessage event");
+          if (callback) callback({ success: false, error: "Missing receiver ID" });
+          return;
+        }
+        
+        if (!message || typeof message !== 'string') {
+          console.error("Invalid message in sendMessage event");
+          if (callback) callback({ success: false, error: "Invalid message" });
+          return;
+        }
+        
+        // Try to find receiver's socket ID
         const receiverSocketId = dmUserSocketMap[receiverId];
         if (receiverSocketId) {
-          dmNamespace.to(receiverSocketId).emit("receiveDirectMessage", {
+          console.log(`Found receiver's socket: ${receiverId} -> ${receiverSocketId}`);
+          
+          // Prepare message data
+          const messageData = {
             message,
             sender: {
               userId: socket.user._id,
               username: socket.user.username,
               avatar: socket.user.avatar
-            }
-          });
+            },
+            timestamp: new Date()
+          };
+          
+          // Emit to receiver
+          dmNamespace.to(receiverSocketId).emit("receiveDirectMessage", messageData);
+          console.log(`Message emitted to receiver ${receiverId}`);
+          
+          // Send acknowledgment
+          if (callback) callback({ success: true, message: "Message sent successfully" });
+        } else {
+          console.log(`Receiver socket not found for user ${receiverId}`);
+          // Still return success as the user may be offline but the message is saved in DB
+          if (callback) callback({ success: true, message: "Message sent but user is offline" });
         }
       } catch (error) {
         console.error("Error sending direct message:", error);
+        // Send error to client
         socket.emit("error", { message: "Failed to send direct message" });
+        // Send acknowledgment with error
+        if (callback) callback({ success: false, error: error.message });
       }
     });
 

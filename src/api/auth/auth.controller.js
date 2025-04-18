@@ -17,6 +17,38 @@ const __dirname = path.dirname(__filename);
 
 const usedTokens = new Set();
 
+/**
+ * Check if the user is authenticated
+ */
+export const checkAuthStatus = async (req, res) => {
+  try {
+    // If we reach this point, the authenticate middleware has already
+    // verified the token and attached the user to the request
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        isAuthenticated: false,
+        message: "User not authenticated"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      isAuthenticated: true,
+      user: user
+    });
+  } catch (error) {
+    console.error("Error in checkAuthStatus controller:", error.message);
+    return res.status(500).json({
+      success: false,
+      isAuthenticated: false,
+      message: "Internal Server Error"
+    });
+  }
+};
+
 export const signup = async (req, res) => {
   try {
     const { username, password, confirmPassword, email } = req.body;
@@ -135,12 +167,20 @@ export const signin = async (req, res) => {
         .json({ success: false, message: "Email not verified" });
     }
 
+    // Generate the token and set cookies
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "15d",
+    });
+    
+    // Set cookies using the utility function
     generateToken(user._id, res);
 
+    // Return the token in the response for localStorage fallback
     return res.status(200).json({
       success: true,
       message: "User signed in successfully",
       user,
+      token: token
     });
   } catch (error) {
     console.log("Error in signin controller: ", error.message);
@@ -503,3 +543,4 @@ export const changePassword = async (req, res) => {
     });
   }
 };
+
