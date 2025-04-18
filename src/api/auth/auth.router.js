@@ -8,10 +8,12 @@ import {
   resendVerificationEmail,
   resetPassword,
   forgotPassword,
-  changePassword
+  changePassword,
+  checkAuthStatus
 } from "./auth.controller.js";
 
 import sendEmailLimiter from "../../middleware/sendEmailLimiter.js";
+import { authenticate } from "../../middleware/auth.js";
 
 /**
  * @swagger
@@ -62,6 +64,35 @@ import sendEmailLimiter from "../../middleware/sendEmailLimiter.js";
  *         description: Internal server error
  */
 authRouter.route("/signup").post(signup);
+
+/**
+ * @swagger
+ * /api/auth/status:
+ *   get:
+ *     summary: Check authentication status
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Authentication status and user info if authenticated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 isAuthenticated:
+ *                   type: boolean
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Not authenticated
+ *       500:
+ *         description: Internal server error
+ */
+authRouter.route("/status").get(authenticate, checkAuthStatus);
 
 /**
  * @swagger
