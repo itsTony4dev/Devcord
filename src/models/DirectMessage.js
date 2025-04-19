@@ -16,11 +16,15 @@ const directMessageSchema = new Schema({
     type: String,
     maxlength: [5000, 'Message content cannot exceed 5000 characters']
   },
+  image:{
+    type: String,
+    default: null
+  },
   isCode: {
     type: Boolean,
     default: false
   },
-  language: {
+  lang: {
     type: String,
     default: null
   },
