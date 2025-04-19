@@ -10,7 +10,7 @@ export const sendDirectMessage = async (req, res) => {
     const { content, isCode, language, image } = req.body;
     const senderId = req.user._id;
 
-    if (!message && !image) {
+    if (!content && !image) {
       return res.status(400).json({
         success: false,
         message: "Cannot send empty message",
