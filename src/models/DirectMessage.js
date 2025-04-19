@@ -14,7 +14,6 @@ const directMessageSchema = new Schema({
   },
   content: {
     type: String,
-    required: [true, 'Message content is required'],
     maxlength: [5000, 'Message content cannot exceed 5000 characters']
   },
   isCode: {

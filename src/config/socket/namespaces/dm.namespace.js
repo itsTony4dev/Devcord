@@ -1,4 +1,3 @@
-import { User } from "../../../models/index.js";
 import { socketAuthMiddleware } from "../middleware/auth.middleware.js";
 
 export function initializeDMNamespace(io) {

@@ -6,8 +6,7 @@ export const sendDirectMessageValidation = [
     .withMessage("Invalid receiver ID format"),
   
   body("content")
-    .notEmpty()
-    .withMessage("Message content is required")
+    .optional()
     .isString()
     .withMessage("Message content must be a string")
     .isLength({ max: 5000 })

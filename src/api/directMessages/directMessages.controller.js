@@ -1,4 +1,5 @@
 import { DirectMessage, Friends, User } from "../../models/index.js";
+import cloudinary from "../../utils/cloudinary/cloudinary.js";
 
 /**
  * Send a direct message to a friend
@@ -6,8 +7,15 @@ import { DirectMessage, Friends, User } from "../../models/index.js";
 export const sendDirectMessage = async (req, res) => {
   try {
     const { receiverId } = req.params;
-    const { content, isCode, language } = req.body;
+    const { content, isCode, language, image } = req.body;
     const senderId = req.user._id;
+
+    if (!message && !image) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot send empty message",
+      });
+    }
 
     // Check if receiver exists
     const receiver = await User.findById(receiverId);
@@ -21,9 +29,9 @@ export const sendDirectMessage = async (req, res) => {
     // Check if users are friends
     const areFriends = await Friends.findOne({
       $or: [
-        { userId: senderId, friendId: receiverId, status: 'accepted' },
-        { userId: receiverId, friendId: senderId, status: 'accepted' }
-      ]
+        { userId: senderId, friendId: receiverId, status: "accepted" },
+        { userId: receiverId, friendId: senderId, status: "accepted" },
+      ],
     });
 
     if (!areFriends) {
@@ -36,9 +44,9 @@ export const sendDirectMessage = async (req, res) => {
     // Check if either user has blocked the other
     const isBlocked = await Friends.findOne({
       $or: [
-        { userId: senderId, friendId: receiverId, status: 'blocked' },
-        { userId: receiverId, friendId: senderId, status: 'blocked' }
-      ]
+        { userId: senderId, friendId: receiverId, status: "blocked" },
+        { userId: receiverId, friendId: senderId, status: "blocked" },
+      ],
     });
 
     if (isBlocked) {
@@ -48,11 +56,18 @@ export const sendDirectMessage = async (req, res) => {
       });
     }
 
+    let imageUrl = null;
+    if (image) {
+      imageUrl = await cloudinary.uploader.upload(image);
+      imageUrl = imageUrl.secure_url;
+    }
+
     // Create new direct message
     const newMessage = new DirectMessage({
       senderId,
       receiverId,
       content,
+      image: imageUrl,
       isCode: isCode || false,
       language: language || null,
     });
@@ -68,6 +83,7 @@ export const sendDirectMessage = async (req, res) => {
       senderId,
       receiverId,
       content,
+      image: imageUrl,
       isCode: newMessage.isCode,
       language: newMessage.language,
       createdAt: newMessage.createdAt,
@@ -82,7 +98,7 @@ export const sendDirectMessage = async (req, res) => {
 
     // Get receiver's socket ID
     const receiverSocketId = io.userSocketMap?.[receiverId];
-    
+
     // Send to receiver if online
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("newDirectMessage", messageData);
@@ -123,9 +139,9 @@ export const getConversation = async (req, res) => {
     // Check if users are friends
     const areFriends = await Friends.findOne({
       $or: [
-        { userId, friendId, status: 'accepted' },
-        { userId: friendId, friendId: userId, status: 'accepted' }
-      ]
+        { userId, friendId, status: "accepted" },
+        { userId: friendId, friendId: userId, status: "accepted" },
+      ],
     });
 
     if (!areFriends) {
@@ -150,19 +166,19 @@ export const getConversation = async (req, res) => {
     const total = await DirectMessage.countDocuments({
       $or: [
         { senderId: userId, receiverId: friendId, isDeleted: false },
-        { senderId: friendId, receiverId: userId, isDeleted: false }
-      ]
+        { senderId: friendId, receiverId: userId, isDeleted: false },
+      ],
     });
 
     // Notify sender that messages have been read
     const io = req.app.get("io");
     const friendSocketId = io.userSocketMap?.[friendId];
-    
+
     if (friendSocketId) {
       io.to(friendSocketId).emit("messagesRead", {
         senderId: friendId,
         receiverId: userId,
-        readAt: new Date()
+        readAt: new Date(),
       });
     }
 
@@ -224,7 +240,7 @@ export const deleteDirectMessage = async (req, res) => {
       io.to(receiverSocketId).emit("directMessageDeleted", {
         messageId: message._id,
         senderId: message.senderId,
-        receiverId: message.receiverId
+        receiverId: message.receiverId,
       });
     }
 
@@ -253,7 +269,7 @@ export const getUnreadMessagesCount = async (req, res) => {
 
     // Group by sender
     const unreadCounts = {};
-    unreadMessages.forEach(message => {
+    unreadMessages.forEach((message) => {
       const senderId = message.senderId._id.toString();
       if (!unreadCounts[senderId]) {
         unreadCounts[senderId] = {
@@ -261,8 +277,8 @@ export const getUnreadMessagesCount = async (req, res) => {
           sender: {
             id: senderId,
             username: message.senderId.username,
-            avatar: message.senderId.avatar
-          }
+            avatar: message.senderId.avatar,
+          },
         };
       }
       unreadCounts[senderId].count++;
@@ -295,12 +311,12 @@ export const markMessagesAsRead = async (req, res) => {
     // Notify sender that messages have been read
     const io = req.app.get("io");
     const senderSocketId = io.userSocketMap?.[senderId];
-    
+
     if (senderSocketId) {
       io.to(senderSocketId).emit("messagesRead", {
         senderId,
         receiverId,
-        readAt: new Date()
+        readAt: new Date(),
       });
     }
 
@@ -308,8 +324,8 @@ export const markMessagesAsRead = async (req, res) => {
       success: true,
       message: "Messages marked as read",
       data: {
-        updated: result.nModified || 0
-      }
+        updated: result.nModified || 0,
+      },
     });
   } catch (error) {
     console.error("Error in markMessagesAsRead controller:", error);
@@ -334,9 +350,9 @@ export const sendTypingIndicator = async (req, res) => {
     // Check if users are friends
     const areFriends = await Friends.findOne({
       $or: [
-        { userId: senderId, friendId: receiverId, status: 'accepted' },
-        { userId: receiverId, friendId: senderId, status: 'accepted' }
-      ]
+        { userId: senderId, friendId: receiverId, status: "accepted" },
+        { userId: receiverId, friendId: senderId, status: "accepted" },
+      ],
     });
 
     if (!areFriends) {
@@ -354,7 +370,7 @@ export const sendTypingIndicator = async (req, res) => {
 
     // Get receiver's socket ID
     const receiverSocketId = io.userSocketMap?.[receiverId];
-    
+
     // Send typing indicator to receiver if online
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("typingIndicator", {
@@ -363,7 +379,7 @@ export const sendTypingIndicator = async (req, res) => {
         sender: {
           username: sender.username,
           avatar: sender.avatar,
-        }
+        },
       });
     }
 
@@ -392,9 +408,9 @@ export const searchMessages = async (req, res) => {
     // Check if users are friends
     const areFriends = await Friends.findOne({
       $or: [
-        { userId, friendId, status: 'accepted' },
-        { userId: friendId, friendId: userId, status: 'accepted' }
-      ]
+        { userId, friendId, status: "accepted" },
+        { userId: friendId, friendId: userId, status: "accepted" },
+      ],
     });
 
     if (!areFriends) {
@@ -408,9 +424,9 @@ export const searchMessages = async (req, res) => {
     const searchQuery = {
       $or: [
         { senderId: userId, receiverId: friendId },
-        { senderId: friendId, receiverId: userId }
+        { senderId: friendId, receiverId: userId },
       ],
-      content: { $regex: query, $options: 'i' }
+      content: { $regex: query, $options: "i" },
     };
 
     // Get total count for pagination
@@ -421,11 +437,11 @@ export const searchMessages = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate('senderId', 'username avatar')
-      .populate('receiverId', 'username avatar');
+      .populate("senderId", "username avatar")
+      .populate("receiverId", "username avatar");
 
     // Format the response
-    const formattedMessages = messages.map(message => ({
+    const formattedMessages = messages.map((message) => ({
       messageId: message._id,
       senderId: message.senderId._id,
       receiverId: message.receiverId._id,
@@ -440,7 +456,7 @@ export const searchMessages = async (req, res) => {
       receiver: {
         username: message.receiverId.username,
         avatar: message.receiverId.avatar,
-      }
+      },
     }));
 
     res.status(200).json({
@@ -451,16 +467,16 @@ export const searchMessages = async (req, res) => {
           total,
           page: parseInt(page),
           limit: parseInt(limit),
-          totalPages: Math.ceil(total / limit)
-        }
-      }
+          totalPages: Math.ceil(total / limit),
+        },
+      },
     });
   } catch (error) {
     console.error("Error in searchMessages controller:", error);
     res.status(500).json({
       success: false,
       message: "Failed to search messages",
-      error: error.message
+      error: error.message,
     });
   }
-}; 
+};
