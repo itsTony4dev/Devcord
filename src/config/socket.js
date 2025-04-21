@@ -6,6 +6,7 @@ import { initializeDMNamespace } from "./socket/namespaces/dm.namespace.js";
 import { initializeChannelsNamespace } from "./socket/namespaces/channels.namespace.js";
 import { initializeFriendsNamespace } from "./socket/namespaces/friends.namespace.js";
 import cookieParser from 'cookie-parser';
+import { socketAuthMiddleware } from "./socket/middleware/auth.middleware.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -23,6 +24,7 @@ const io = new Server(server, {
   connectTimeout: 30000, // Increase connection timeout
 });
 
+io.use(socketAuthMiddleware)
 // Debug socket connections
 io.engine.on("connection_error", (err) => {
   console.error("Socket.IO connection error:", err.req.url, err.code, err.message, err.context);
@@ -40,7 +42,7 @@ setInterval(() => {
   console.log("- DM connections:", Object.keys(dmUserSocketMap).length);
   console.log("- Channel connections:", Object.keys(channelUsers).length);
   console.log("- Friend connections:", Object.keys(friendsUserSocketMap).length);
-}, 60000);
+}, 10000);
 
 // Store user's workspace - {userId: workspaceId}
 const userWorkspaceMap = {};
