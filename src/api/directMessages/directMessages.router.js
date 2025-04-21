@@ -15,8 +15,7 @@ import {
   getConversationValidation,
   deleteDirectMessageValidation,
   markMessagesAsReadValidation,
-  sendTypingIndicatorValidation,
-  sendWorkspaceInviteMessageValidation
+  sendTypingIndicatorValidation
 } from "./directMessages.validation.js";
 
 const directMessagesRouter = express.Router();
@@ -305,7 +304,6 @@ directMessagesRouter.get(
  */
 directMessagesRouter.post(
   "/invite/:receiverId",
-  sendWorkspaceInviteMessageValidation,
   validate,
   sendWorkspaceInviteMessage
 );
