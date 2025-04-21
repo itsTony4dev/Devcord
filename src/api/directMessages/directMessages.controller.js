@@ -5,6 +5,7 @@ import cloudinary from "../../utils/cloudinary/cloudinary.js";
  * Send a direct message to a friend
  */
 export const sendDirectMessage = async (req, res) => {
+  
   try {
     const { receiverId } = req.params;
     const { content, isCode, language, image } = req.body;
@@ -61,6 +62,7 @@ export const sendDirectMessage = async (req, res) => {
       imageUrl = await cloudinary.uploader.upload(image);
       imageUrl = imageUrl.secure_url;
     }
+console.log("5aye jouxxx l2asle",imageUrl);
 
     // Create new direct message
     const newMessage = new DirectMessage({
@@ -101,8 +103,9 @@ export const sendDirectMessage = async (req, res) => {
 
     // Send to receiver if online
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newDirectMessage", messageData);
+      io.of("/dm").to(receiverSocketId).emit("receiveDirectMessage", messageData);
     }
+console.log("5aye touxxx l2asle",messageData);
 
     res.status(201).json({
       success: true,
@@ -237,7 +240,7 @@ export const deleteDirectMessage = async (req, res) => {
     // Notify the receiver about deleted message
     const receiverSocketId = io.userSocketMap?.[message.receiverId.toString()];
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("directMessageDeleted", {
+      io.of("/dm").to(receiverSocketId).emit("directMessageDeleted", {
         messageId: message._id,
         senderId: message.senderId,
         receiverId: message.receiverId,
