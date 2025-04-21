@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import { Workspace, User, UserWorkspace } from "../../models/index.js";
+import { Workspace, User, UserWorkspace, DirectMessage, Friends } from "../../models/index.js";
 import transporter from "../../config/transporter.js";
 import workspaceInviteEmail from "../../utils/email/templates/workspaceInvite.js";
 
@@ -164,6 +164,7 @@ export const sendWorkspaceInvite = async (req, res) => {
   try {
     const usersToInvite = req.body.users;
     const workspaceId = req.params.id;
+    const senderId = req.user.id;
 
     // Validate input
     if (
@@ -203,45 +204,97 @@ export const sendWorkspaceInvite = async (req, res) => {
       await workspace.save();
     }
 
-    const baseUrl = "http://localhost:3001";
-
     // Keep track of successful invites
     const successfulInvites = [];
     const failedInvites = [];
     const invitedUsers = [];
 
-    // Send invites to each email
+    // Get the socket instance for real-time notifications
+    const io = req.app.get("io");
+
+    // Send invites to each user via direct message
     for (const userId of usersToInvite) {
       try {
         // Find user if they exist
         const user = await User.findById(userId);
-        const username = user ? user.username : "there";
-        const email = user?.email;
-        // Send email to user
-        await transporter.sendMail({
-          from: process.env.EMAIL,
-          to: email,
-          subject: `You're invited to join ${workspace.workspaceName} on Devcord`,
-          html: workspaceInviteEmail({
-            username,
-            workspaceName: workspace.workspaceName,
-            inviteCode: workspace.inviteCode,
-            baseUrl,
-            workspaceId,
-          }),
+        if (!user) {
+          failedInvites.push({ userId, reason: "User not found" });
+          continue;
+        }
+
+        // Check if users are friends
+        const areFriends = await Friends.findOne({
+          $or: [
+            { userId: senderId, friendId: userId, status: "accepted" },
+            { userId: userId, friendId: senderId, status: "accepted" },
+          ],
         });
 
+        if (!areFriends) {
+          failedInvites.push({ userId, reason: "Not friends with user" });
+          continue;
+        }
+
+        // Create invitation message content
+        const content = `You've been invited to join the workspace "${workspace.workspaceName}". Use the invite code: ${workspace.inviteCode}`;
+
+        // Create new direct message with workspace invitation
+        const newMessage = new DirectMessage({
+          senderId,
+          receiverId: userId,
+          content,
+          isWorkspaceInvite: true,
+          workspaceInvite: {
+            workspaceId,
+            workspaceName: workspace.workspaceName,
+            inviteCode: workspace.inviteCode
+          }
+        });
+
+        await newMessage.save();
+
+        // Get sender info
+        const sender = await User.findById(senderId).select("username avatar");
+
+        // Prepare message data for socket emission
+        const messageData = {
+          messageId: newMessage._id,
+          senderId,
+          receiverId: userId,
+          content,
+          isWorkspaceInvite: true,
+          workspaceInvite: {
+            workspaceId,
+            workspaceName: workspace.workspaceName,
+            inviteCode: workspace.inviteCode
+          },
+          createdAt: newMessage.createdAt,
+          sender: {
+            username: sender.username,
+            avatar: sender.avatar,
+          },
+        };
+
+        // Get receiver's socket ID
+        const receiverSocketId = io.userSocketMap?.[userId];
+
+        // Send to receiver if online
+        if (receiverSocketId) {
+          io.of("/dm").to(receiverSocketId).emit("receiveDirectMessage", messageData);
+        }
+
         invitedUsers.push(userId);
-        successfulInvites.push(email);
-      } catch (emailError) {
-        console.error(`Failed to send invite to ${email}:`, emailError.message);
-        failedInvites.push({ email, reason: "Failed to send email" });
+        successfulInvites.push(userId);
+      } catch (error) {
+        console.error(`Failed to send invite to ${userId}:`, error.message);
+        failedInvites.push({ userId, reason: error.message });
       }
     }
 
     await Workspace.findByIdAndUpdate(workspaceId, {
       $addToSet: { invitedUsers },
     });
+    
     // Return response with results
     res.status(200).json({
       success: true,

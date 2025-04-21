@@ -483,3 +483,116 @@ export const searchMessages = async (req, res) => {
     });
   }
 };
+
+/**
+ * Send a workspace invitation via direct message
+ */
+export const sendWorkspaceInviteMessage = async (req, res) => {
+  try {
+    const { receiverId } = req.params;
+    const { workspaceId, workspaceName, inviteCode } = req.body;
+    const senderId = req.user._id;
+
+    // Check if receiver exists
+    const receiver = await User.findById(receiverId);
+    if (!receiver) {
+      return res.status(404).json({
+        success: false,
+        message: "Receiver not found",
+      });
+    }
+
+    // Check if users are friends
+    const areFriends = await Friends.findOne({
+      $or: [
+        { userId: senderId, friendId: receiverId, status: "accepted" },
+        { userId: receiverId, friendId: senderId, status: "accepted" },
+      ],
+    });
+
+    if (!areFriends) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only send messages to friends",
+      });
+    }
+
+    // Check if either user has blocked the other
+    const isBlocked = await Friends.findOne({
+      $or: [
+        { userId: senderId, friendId: receiverId, status: "blocked" },
+        { userId: receiverId, friendId: senderId, status: "blocked" },
+      ],
+    });
+
+    if (isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: "Cannot send message due to blocking",
+      });
+    }
+
+    // Create invitation message content
+    const content = `You've been invited to join the workspace "${workspaceName}". Use the invite code: ${inviteCode}`;
+
+    // Create new direct message with workspace invitation
+    const newMessage = new DirectMessage({
+      senderId,
+      receiverId,
+      content,
+      isWorkspaceInvite: true,
+      workspaceInvite: {
+        workspaceId,
+        workspaceName,
+        inviteCode
+      }
+    });
+
+    await newMessage.save();
+
+    // Get sender info
+    const sender = await User.findById(senderId).select("username avatar");
+
+    // Prepare message data for socket emission
+    const messageData = {
+      messageId: newMessage._id,
+      senderId,
+      receiverId,
+      content,
+      isWorkspaceInvite: true,
+      workspaceInvite: {
+        workspaceId,
+        workspaceName,
+        inviteCode
+      },
+      createdAt: newMessage.createdAt,
+      sender: {
+        username: sender.username,
+        avatar: sender.avatar,
+      },
+    };
+
+    // Get the socket instance
+    const io = req.app.get("io");
+
+    // Get receiver's socket ID
+    const receiverSocketId = io.userSocketMap?.[receiverId];
+
+    // Send to receiver if online
+    if (receiverSocketId) {
+      io.of("/dm").to(receiverSocketId).emit("receiveDirectMessage", messageData);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Workspace invitation sent successfully",
+      data: messageData,
+    });
+  } catch (error) {
+    console.error("Error in sendWorkspaceInviteMessage controller:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to send workspace invitation",
+    });
+  }
+};

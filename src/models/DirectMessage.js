@@ -35,6 +35,19 @@ const directMessageSchema = new Schema({
   isDeleted: {
     type: Boolean,
     default: false
+  },
+  // New field for workspace invitations
+  isWorkspaceInvite: {
+    type: Boolean,
+    default: false
+  },
+  workspaceInvite: {
+    workspaceId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Workspace'
+    },
+    workspaceName: String,
+    inviteCode: String
   }
 }, {
   timestamps: true

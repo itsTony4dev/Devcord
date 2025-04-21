@@ -6,7 +6,8 @@ import {
   getUnreadMessagesCount,
   markMessagesAsRead,
   sendTypingIndicator,
-  searchMessages
+  searchMessages,
+  sendWorkspaceInviteMessage
 } from "./directMessages.controller.js";
 import { validate } from "../../middleware/validate.js";
 import {
@@ -15,7 +16,7 @@ import {
   deleteDirectMessageValidation,
   markMessagesAsReadValidation,
   sendTypingIndicatorValidation,
-  
+  sendWorkspaceInviteMessageValidation
 } from "./directMessages.validation.js";
 
 const directMessagesRouter = express.Router();
@@ -261,6 +262,52 @@ directMessagesRouter.post(
 directMessagesRouter.get(
   "/search/:friendId",
   searchMessages
+);
+
+/**
+ * @swagger
+ * /api/directMessages/invite/{receiverId}:
+ *   post:
+ *     summary: Send a workspace invitation via direct message
+ *     tags: [Direct Messages]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: receiverId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     Body:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - workspaceId
+ *               - workspaceName
+ *               - inviteCode
+ *             properties:
+ *               workspaceId:
+ *                 type: string
+ *               workspaceName:
+ *                 type: string
+ *               inviteCode:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Workspace invitation sent successfully
+ *       403:
+ *         description: Not authorized to send message
+ *       404:
+ *         description: Receiver not found
+ */
+directMessagesRouter.post(
+  "/invite/:receiverId",
+  sendWorkspaceInviteMessageValidation,
+  validate,
+  sendWorkspaceInviteMessage
 );
 
 export default directMessagesRouter; 
