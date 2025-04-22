@@ -1,3 +1,4 @@
+import "dotenv/config"
 import { DirectMessage, Friends, User } from "../../models/index.js";
 import cloudinary from "../../utils/cloudinary/cloudinary.js";
 
@@ -533,7 +534,7 @@ export const sendWorkspaceInviteMessage = async (req, res) => {
     }
 
     // Create invitation message content
-    const content = `You've been invited to join the workspace "${workspaceName}". Use the invite code: ${inviteCode}`;
+          const content = `You've been invited to join the workspace "${workspaceName}". Use the invite code: ${inviteCode} or press the following link:\r\n${process.env.BACKEND_URL}/api/workspaces/${workspaceId}/join/${inviteCode}`;
 
     // Create new direct message with workspace invitation
     const newMessage = new DirectMessage({

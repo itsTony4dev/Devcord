@@ -42,7 +42,7 @@ setInterval(() => {
   console.log("- DM connections:", Object.keys(dmUserSocketMap).length);
   console.log("- Channel connections:", Object.keys(channelUsers).length);
   console.log("- Friend connections:", Object.keys(friendsUserSocketMap).length);
-}, 10000);
+}, 60000);
 
 // Store user's workspace - {userId: workspaceId}
 const userWorkspaceMap = {};

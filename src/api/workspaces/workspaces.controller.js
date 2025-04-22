@@ -236,7 +236,7 @@ export const sendWorkspaceInvite = async (req, res) => {
         }
 
         // Create invitation message content
-        const content = `You've been invited to join the workspace "${workspace.workspaceName}". Use the invite code: ${workspace.inviteCode}`;
+        const content = `You've been invited to join the workspace "${workspace.workspaceName}". Use the invite code: ${workspace.inviteCode} or press the following link:\r\n${process.env.BACKEND_URL}/api/workspaces/${workspace.id}/join/${workspace.inviteCode}`;
 
         // Create new direct message with workspace invitation
         const newMessage = new DirectMessage({
