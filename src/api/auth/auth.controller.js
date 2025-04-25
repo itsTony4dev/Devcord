@@ -195,7 +195,7 @@ export const signout = (_req, res) => {
       secure: process.env.NODE_ENV !== "development",
       sameSite: "none",
     });
-    res.clearCookie("auth-store", {
+    res.clearCookie("auth_token", {
       httpOnly: true,
       secure: process.env.NODE_ENV !== "development",
       sameSite: "none",
