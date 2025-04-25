@@ -30,21 +30,21 @@ export const checkAuthStatus = async (req, res) => {
       return res.status(401).json({
         success: false,
         isAuthenticated: false,
-        message: "User not authenticated"
+        message: "User not authenticated",
       });
     }
 
     return res.status(200).json({
       success: true,
       isAuthenticated: true,
-      user: user
+      user: user,
     });
   } catch (error) {
     console.error("Error in checkAuthStatus controller:", error.message);
     return res.status(500).json({
       success: false,
       isAuthenticated: false,
-      message: "Internal Server Error"
+      message: "Internal Server Error",
     });
   }
 };
@@ -171,7 +171,7 @@ export const signin = async (req, res) => {
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "15d",
     });
-    
+
     // Set cookies using the utility function
     generateToken(user._id, res);
 
@@ -180,7 +180,7 @@ export const signin = async (req, res) => {
       success: true,
       message: "User signed in successfully",
       user,
-      token: token
+      token: token,
     });
   } catch (error) {
     console.log("Error in signin controller: ", error.message);
@@ -193,7 +193,12 @@ export const signout = (_req, res) => {
     res.clearCookie("jwt", {
       httpOnly: true,
       secure: process.env.NODE_ENV !== "development",
-      sameSite: "strict",
+      sameSite: "none",
+    });
+    res.clearCookie("auth-store", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV !== "development",
+      sameSite: "none",
     });
     return res
       .status(200)
@@ -543,4 +548,3 @@ export const changePassword = async (req, res) => {
     });
   }
 };
-
