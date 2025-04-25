@@ -9,7 +9,7 @@ export const generateToken = (userId, res) => {
   res.cookie("jwt", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production", // Only require HTTPS in production
-    sameSite: "lax", // Allow cookies to be sent in cross-site requests for better development experience
+    sameSite: "none", // Allow cookies to be sent in cross-site requests for better development experience
     maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
     path: "/", // Make sure cookie is accessible for all paths
   });
@@ -19,7 +19,7 @@ export const generateToken = (userId, res) => {
   res.cookie("auth_token", token, {
     httpOnly: false, // Accessible from JavaScript
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "none",
     maxAge: 15 * 24 * 60 * 60 * 1000,
     path: "/",
   });
