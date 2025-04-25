@@ -1,8 +1,6 @@
 import "dotenv/config";
 
 import { Workspace, User, UserWorkspace, DirectMessage, Friends } from "../../models/index.js";
-import transporter from "../../config/transporter.js";
-import workspaceInviteEmail from "../../utils/email/templates/workspaceInvite.js";
 
 export const getWorkspaces = async (req, res) => {
   try {
