@@ -110,7 +110,7 @@ export const signup = async (req, res) => {
       expiresIn: "24h",
     });
 
-    const url = `http://localhost:${process.env.PORT}/api/auth/verify/${token}`;
+    const url = `${process.env.BACKEND_URL}/api/auth/verify/${token}`;
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -348,7 +348,7 @@ export const forgotPassword = async (req, res) => {
       { expiresIn: "15m" }
     );
 
-    const resetUrl = `http://localhost:${process.env.PORT}/api/auth/reset-password?token=${token}`;
+    const resetUrl = `${process.env.BACKEND_URL}/api/auth/reset-password?token=${token}`;
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
