@@ -35,6 +35,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json({limit: '15mb'}));
 app.use(cookieParser());
+const allowedOrigins = process.env.FRONTEND_URL.split(",");
 app.use(
   cors({
     origin: (origin, callback) => {
