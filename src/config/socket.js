@@ -15,6 +15,7 @@ const server = http.createServer(app);
 app.use(cookieParser());
 
 // Configure Socket.IO with more detailed logging
+const allowedOrigins = process.env.FRONTEND_URL.split(",");
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
