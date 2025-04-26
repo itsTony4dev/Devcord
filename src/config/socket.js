@@ -17,7 +17,7 @@ app.use(cookieParser());
 // Configure Socket.IO with more detailed logging
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL,
+    origin: process.env.FRONTEND_URL.split(","),
     credentials: true
   },
   pingTimeout: 60000, // Increase ping timeout for better connection stability
