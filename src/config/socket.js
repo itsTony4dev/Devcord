@@ -5,7 +5,7 @@ import express from "express";
 import { initializeDMNamespace } from "./socket/namespaces/dm.namespace.js";
 import { initializeChannelsNamespace } from "./socket/namespaces/channels.namespace.js";
 import { initializeFriendsNamespace } from "./socket/namespaces/friends.namespace.js";
-import cookieParser from 'cookie-parser';
+import cookieParser from "cookie-parser";
 import { socketAuthMiddleware } from "./socket/middleware/auth.middleware.js";
 
 const app = express();
@@ -17,17 +17,29 @@ app.use(cookieParser());
 // Configure Socket.IO with more detailed logging
 const io = new Server(server, {
   cors: {
-    origin: '*',
-    credentials: true
+    origin: (origin, callback) => {
+      if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"), false);
+      }
+    },
+    credentials: true,
   },
   pingTimeout: 60000, // Increase ping timeout for better connection stability
   connectTimeout: 30000, // Increase connection timeout
 });
 
-io.use(socketAuthMiddleware)
+io.use(socketAuthMiddleware);
 // Debug socket connections
 io.engine.on("connection_error", (err) => {
-  console.error("Socket.IO connection error:", err.req.url, err.code, err.message, err.context);
+  console.error(
+    "Socket.IO connection error:",
+    err.req.url,
+    err.code,
+    err.message,
+    err.context
+  );
 });
 
 // Initialize all namespaces
@@ -41,7 +53,10 @@ setInterval(() => {
   console.log("Current socket connection maps:");
   console.log("- DM connections:", Object.keys(dmUserSocketMap).length);
   console.log("- Channel connections:", Object.keys(channelUsers).length);
-  console.log("- Friend connections:", Object.keys(friendsUserSocketMap).length);
+  console.log(
+    "- Friend connections:",
+    Object.keys(friendsUserSocketMap).length
+  );
 }, 60000);
 
 // Store user's workspace - {userId: workspaceId}
@@ -55,7 +70,9 @@ io.userWorkspaceMap = userWorkspaceMap;
 // Helper functions for controllers
 export function getReceiverSocketId(userId) {
   const socketId = dmUserSocketMap[userId];
-  console.log(`Looking up socket ID for user ${userId}: ${socketId || 'not found'}`);
+  console.log(
+    `Looking up socket ID for user ${userId}: ${socketId || "not found"}`
+  );
   return socketId;
 }
 
@@ -63,12 +80,12 @@ export function getChannelUsers(channelId) {
   return channelUsers[channelId] || [];
 }
 
-export { 
-  io, 
-  server, 
-  app, 
-  dmUserSocketMap, 
-  channelUsers, 
+export {
+  io,
+  server,
+  app,
+  dmUserSocketMap,
+  channelUsers,
   friendsUserSocketMap,
-  userWorkspaceMap 
+  userWorkspaceMap,
 };
