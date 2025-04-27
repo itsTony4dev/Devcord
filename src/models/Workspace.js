@@ -45,7 +45,7 @@ workspaceSchema.index({ createdBy: 1 });
 // Virtual for getting invite URL
 workspaceSchema.virtual("inviteUrl").get(function () {
   return `${
-    process.env.FRONTEND_URL || "http://localhost:3000"
+    process.env.FRONTEND_URL.split(",")[0] || "http://localhost:3000"
   }/invite/${this.inviteCode}`;
 });
 

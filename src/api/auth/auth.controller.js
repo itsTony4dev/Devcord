@@ -223,7 +223,7 @@ export const verifyEmail = async (req, res) => {
         icon: "✕",
         iconClass: "error",
         buttonText: "Back to Sign Up",
-        buttonLink: `${process.env.FRONTEND_URL}/signup`,
+        buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/signup`,
         buttonClass: "error-button",
       });
     }
@@ -236,7 +236,7 @@ export const verifyEmail = async (req, res) => {
         icon: "✕",
         iconClass: "error",
         buttonText: "Back to Sign Up",
-        buttonLink: `${process.env.FRONTEND_URL}/signup`,
+        buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/signup`,
         buttonClass: "error-button",
       });
     }
@@ -249,7 +249,7 @@ export const verifyEmail = async (req, res) => {
         icon: "ℹ",
         iconClass: "info",
         buttonText: "Go to Login",
-        buttonLink: `${process.env.FRONTEND_URL}/login`,
+        buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/login`,
         buttonClass: "info-button",
       });
     }
@@ -264,7 +264,7 @@ export const verifyEmail = async (req, res) => {
       icon: "✓",
       iconClass: "success",
       buttonText: "Go to Login",
-      buttonLink: `${process.env.FRONTEND_URL}/login`,
+      buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/login`,
       buttonClass: "success-button",
     });
   } catch (error) {
@@ -275,7 +275,7 @@ export const verifyEmail = async (req, res) => {
       icon: "✕",
       iconClass: "error",
       buttonText: "Back to Sign Up",
-      buttonLink: `${process.env.FRONTEND_URL}/signup`,
+      buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/signup`,
       buttonClass: "error-button",
     });
   }
@@ -380,7 +380,7 @@ export const resetPassword = async (req, res) => {
         icon: "✕",
         iconClass: "error",
         buttonText: "Try Again",
-        buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
+        buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/forgot-password`,
         buttonClass: "error-button",
       });
     }
@@ -400,7 +400,7 @@ export const resetPassword = async (req, res) => {
           icon: "✕",
           iconClass: "error",
           buttonText: "Request New Link",
-          buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
+          buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/forgot-password`,
           buttonClass: "error-button",
         });
       }
@@ -417,7 +417,7 @@ export const resetPassword = async (req, res) => {
         icon: "✕",
         iconClass: "error",
         buttonText: "Try Again",
-        buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
+        buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/forgot-password`,
         buttonClass: "error-button",
       });
     }
@@ -429,7 +429,7 @@ export const resetPassword = async (req, res) => {
       icon: "✕",
       iconClass: "error",
       buttonText: "Try Again",
-      buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
+      buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/forgot-password`,
       buttonClass: "error-button",
     });
   }
@@ -454,7 +454,7 @@ export const changePassword = async (req, res) => {
           icon: "✕",
           iconClass: "error",
           buttonText: "Request New Link",
-          buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
+          buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/forgot-password`,
           buttonClass: "error-button",
         });
       }
@@ -465,7 +465,7 @@ export const changePassword = async (req, res) => {
         icon: "✕",
         iconClass: "error",
         buttonText: "Try Again",
-        buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
+        buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/forgot-password`,
         buttonClass: "error-button",
       });
     }
@@ -478,7 +478,7 @@ export const changePassword = async (req, res) => {
         icon: "✕",
         iconClass: "error",
         buttonText: "Try Again",
-        buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
+        buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/forgot-password`,
         buttonClass: "error-button",
       });
     }
@@ -490,7 +490,7 @@ export const changePassword = async (req, res) => {
         icon: "✕",
         iconClass: "error",
         buttonText: "Try Again",
-        buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
+        buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/forgot-password`,
         buttonClass: "error-button",
       });
     }
@@ -502,7 +502,7 @@ export const changePassword = async (req, res) => {
         icon: "✕",
         iconClass: "error",
         buttonText: "Try Again",
-        buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
+        buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/forgot-password`,
         buttonClass: "error-button",
       });
     }
@@ -532,7 +532,7 @@ export const changePassword = async (req, res) => {
       icon: "✓",
       iconClass: "success",
       buttonText: "Go to Login",
-      buttonLink: `${process.env.FRONTEND_URL}/login`,
+      buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/login`,
       buttonClass: "success-button",
     });
   } catch (error) {
@@ -543,7 +543,7 @@ export const changePassword = async (req, res) => {
       icon: "✕",
       iconClass: "error",
       buttonText: "Try Again",
-      buttonLink: `${process.env.FRONTEND_URL}/forgot-password`,
+      buttonLink: `${process.env.FRONTEND_URL.split(",")[0]}/forgot-password`,
       buttonClass: "error-button",
     });
   }
