@@ -99,6 +99,22 @@ directMessageSchema.statics.findUnreadMessages = async function(userId) {
   .sort({ createdAt: -1 });
 };
 
+directMessageSchema.statics.deleteConversation = async function (
+  user1Id,
+  user2Id
+) {
+  return this.deleteMany(
+    {
+      $or: [
+        { senderId: user1Id, receiverId: user2Id },
+        { senderId: user2Id, receiverId: user1Id },
+      ],
+      isDeleted: false, 
+    }
+  );
+};
+
+
 // Static method to mark messages as read
 directMessageSchema.statics.markAsRead = async function(receiverId, senderId) {
   const now = new Date();
