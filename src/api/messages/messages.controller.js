@@ -28,10 +28,16 @@ export const sendMessage = async (req, res) => {
       });
     }
 
+    // Process image if provided
     let imageUrl = null;
     if (image) {
-      imageUrl = await cloudinary.uploader.upload(image);
-      imageUrl = imageUrl.secure_url;
+      try {
+        const uploadResult = await cloudinary.uploader.upload(image);
+        imageUrl = uploadResult.secure_url;
+      } catch (uploadError) {
+        console.error("Image upload error:", uploadError);
+        // Continue without image if upload fails
+      }
     }
 
     // For private channels, verify access
@@ -63,20 +69,27 @@ export const sendMessage = async (req, res) => {
       userId,
       content: message,
       image: imageUrl,
+      workspaceId: channel.workspaceId, // Ensure workspaceId is stored with the message
     });
     await newMessage.save();
 
     // Prepare message data for socket emission
     const messageData = {
+      _id: newMessage._id,
       channelId,
       messageId: newMessage._id,
-      message,
+      workspaceId: channel.workspaceId,
+      content: message,
+      message, // Include both content and message for compatibility
       image: imageUrl,
       sender: {
         userId,
         username: sender.username,
         avatar: sender.avatar,
       },
+      senderId: userId,
+      timestamp: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     };
 
     // Get the socket instance
@@ -97,8 +110,9 @@ export const sendMessage = async (req, res) => {
         }
       });
     } else {
-      // For public channels, broadcast to all users in the channel
-      io.to(channelId).emit("receiveMessage", messageData);
+      // For public channels, broadcast to all users in the channel namespace
+      const channelsNamespace = io.of("/channels");
+      channelsNamespace.to(channelId).emit("receiveMessage", messageData);
     }
 
     res.status(201).json({
@@ -149,11 +163,32 @@ export const getChannelMessages = async (req, res) => {
     }
 
     // Get messages with pagination
-    const messages = await Message.find({ channelId })
+    const rawMessages = await Message.find({ channelId })
       .sort({ timestamp: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
       .populate("userId", "username avatar");
+
+    // Format messages to match socket format
+    const messages = rawMessages.map(msg => ({
+      _id: msg._id,
+      channelId: msg.channelId,
+      workspaceId: msg.workspaceId || channel.workspaceId,
+      content: msg.content,
+      message: msg.content, // Include both for compatibility
+      image: msg.image,
+      createdAt: msg.createdAt,
+      timestamp: msg.createdAt,
+      senderId: msg.userId._id,
+      userId: msg.userId._id,
+      sender: {
+        userId: msg.userId._id,
+        username: msg.userId.username,
+        avatar: msg.userId.avatar
+      },
+      // Set isSentByMe flag
+      isSentByMe: msg.userId._id.toString() === userId.toString()
+    }));
 
     // Get total count for pagination
     const total = await Message.countDocuments({ channelId });

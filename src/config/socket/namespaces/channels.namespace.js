@@ -1,5 +1,6 @@
-import { Channel, User, UserWorkspace } from "../../../models/index.js";
+import { Channel, User, UserWorkspace, Message } from "../../../models/index.js";
 import { socketAuthMiddleware } from "../middleware/auth.middleware.js";
+import cloudinary from "../../../utils/cloudinary/cloudinary.js";
 
 export function initializeChannelsNamespace(io) {
   const channelsNamespace = io.of("/channels");
@@ -129,9 +130,9 @@ export function initializeChannelsNamespace(io) {
       });
     });
 
-    // Send message to channel
-    socket.on("sendMessage", async ({ channelId, message, timestamp }) => {
-      if (!message.trim()) return;
+    // Send message to channel - UPDATED
+    socket.on("sendMessage", async ({ channelId, workspaceId, message, image, timestamp }) => {
+      if (!message && !image) return;
       
       try {
         const channel = await Channel.findById(channelId);
@@ -150,56 +151,65 @@ export function initializeChannelsNamespace(io) {
           }
         }
         
-        // Prepare message data
-        const messageData = {
+        // Process image if provided
+        let imageUrl = null;
+        if (image) {
+          try {
+            const uploadResult = await cloudinary.uploader.upload(image);
+            imageUrl = uploadResult.secure_url;
+          } catch (uploadError) {
+            console.error("Image upload error:", uploadError);
+            // Continue without image if upload fails
+          }
+        }
+        
+        // Save message to database
+        const newMessage = new Message({
           channelId,
-          message,
+          userId: socket.user._id,
+          content: message,
+          image: imageUrl,
+          workspaceId: workspaceId || channel.workspaceId,
+        });
+        
+        await newMessage.save();
+        
+        // Prepare message data with consistent format
+        const messageData = {
+          _id: newMessage._id,
+          channelId,
+          workspaceId: workspaceId || channel.workspaceId,
+          content: message,
+          message, // Include both content and message for compatibility
+          image: imageUrl,
           sender: {
             userId: socket.user._id,
             username: socket.user.username,
             avatar: socket.user.avatar
           },
-          timestamp: timestamp || new Date().toISOString()
+          senderId: socket.user._id, // Include explicit senderId for easier access
+          userId: socket.user._id, // Include userId for compatibility
+          timestamp: timestamp || new Date().toISOString(),
+          createdAt: timestamp || new Date().toISOString()
         };
         
-        // Broadcast to channel
-        channelsNamespace.to(channelId).emit("receiveMessage", messageData);
+        // Broadcast ONLY to the specific channel room
+        socket.to(channelId).emit("receiveMessage", messageData);
+        
+        // Also send back to sender with acknowledgment
+        socket.emit("messageSent", { 
+          success: true, 
+          messageId: newMessage._id,
+          message: messageData 
+        });
       } catch (error) {
         console.error("Error sending message:", error);
         socket.emit("error", { message: "Failed to send message" });
       }
     });
 
-    // Typing indicator in channel
-    socket.on("typing", async ({ channelId, isTyping }) => {
-      try {
-        const channel = await Channel.findById(channelId);
-        
-        if (!channel) {
-          return socket.emit("error", { message: "Channel not found" });
-        }
-        
-        // For private channels, verify access
-        if (channel.isPrivate) {
-          const hasAccess = channel.createdBy.toString() === socket.user._id.toString() ||
-            channel.allowedUsers.some(id => id.toString() === socket.user._id.toString());
-          
-          if (!hasAccess) {
-            return socket.emit("error", { message: "Access denied to private channel" });
-          }
-        }
-        
-        socket.to(channelId).emit("userTyping", {
-          channelId,
-          userId: socket.user._id,
-          username: socket.user.username,
-          isTyping
-        });
-      } catch (error) {
-        console.error("Error sending typing indicator:", error);
-        socket.emit("error", { message: "Failed to send typing indicator" });
-      }
-    });
+    // Typing indicator in channel - disabled for this implementation
+    // socket.on("typing", async ({ channelId, isTyping }) => { ... });
 
     // Handle disconnection
     socket.on("disconnect", () => {

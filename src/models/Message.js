@@ -7,6 +7,11 @@ const messageSchema = new Schema({
     ref: 'Channel',
     required: [true, 'Channel ID is required']
   },
+  workspaceId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Workspace',
+    default: null
+  },
   threadId: {
     type: Schema.Types.ObjectId,
     ref: 'Thread',
@@ -62,6 +67,7 @@ const messageSchema = new Schema({
 
 // Indexes for faster queries
 messageSchema.index({ channelId: 1, createdAt: -1 });
+messageSchema.index({ workspaceId: 1, createdAt: -1 });
 messageSchema.index({ threadId: 1, createdAt: 1 });
 messageSchema.index({ userId: 1 });
 messageSchema.index({ mentions: 1 });
