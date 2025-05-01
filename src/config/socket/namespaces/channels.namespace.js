@@ -295,6 +295,7 @@ export function initializeChannelsNamespace(io) {
     // Handle message reactions
     socket.on("addReaction", async ({ messageId, channelId, reaction }) => {
       try {
+        console.log(`Processing reaction "${reaction}" for message ${messageId} from user ${socket.user.username}`);
         const message = await Message.findById(messageId);
         
         if (!message) {
@@ -322,32 +323,92 @@ export function initializeChannelsNamespace(io) {
           message.reactions = [];
         }
         
-        // Check if user already reacted with this emoji
-        const existingReactionIndex = message.reactions.findIndex(r => 
-          r.userId.toString() === socket.user._id.toString() && 
-          r.reaction === reaction
-        );
+        const currentUserId = socket.user._id.toString();
         
-        if (existingReactionIndex !== -1) {
-          // Remove the reaction if it already exists (toggle behavior)
-          message.reactions.splice(existingReactionIndex, 1);
+        // First, find and remove any existing reactions from this user (one user, one reaction policy)
+        let removedExistingReaction = false;
+        for (let i = message.reactions.length - 1; i >= 0; i--) {
+          const r = message.reactions[i];
+          if (!r.users) continue;
+          
+          // Check if user has already reacted with any emoji
+          const userIndexInReaction = r.users.findIndex(userId => 
+            userId && userId.toString && userId.toString() === currentUserId
+          );
+          
+          if (userIndexInReaction !== -1) {
+            // Remove user from this reaction
+            r.users.splice(userIndexInReaction, 1);
+            removedExistingReaction = true;
+            
+            // Remove the entire reaction if no users left
+            if (r.users.length === 0) {
+              message.reactions.splice(i, 1);
+            }
+          }
+        }
+        
+        // If we removed an existing reaction and the new one is the same, we're done (toggle behavior)
+        if (removedExistingReaction) {
+          const wasTogglingOff = message.reactions.some(r => r.emoji === reaction);
+          if (wasTogglingOff) {
+            // User was trying to remove their existing reaction, so we're done
+            console.log(`User ${socket.user.username} removed their reaction "${reaction}"`);
+          } else {
+            // User is changing to a new emoji, add the new reaction
+            const existingReactionIndex = message.reactions.findIndex(r => r.emoji === reaction);
+            
+            if (existingReactionIndex !== -1) {
+              // Add user to existing reaction
+              message.reactions[existingReactionIndex].users.push(socket.user._id);
+            } else {
+              // Create new reaction
+              message.reactions.push({
+                emoji: reaction,
+                users: [socket.user._id]
+              });
+            }
+            console.log(`User ${socket.user.username} changed reaction to "${reaction}"`);
+          }
         } else {
-          // Add the new reaction
-          message.reactions.push({
-            userId: socket.user._id,
-            reaction,
-            username: socket.user.username
-          });
+          // User hasn't reacted yet, add their reaction
+          const existingReactionIndex = message.reactions.findIndex(r => r.emoji === reaction);
+          
+          if (existingReactionIndex !== -1) {
+            // Add user to existing reaction
+            message.reactions[existingReactionIndex].users.push(socket.user._id);
+          } else {
+            // Create new reaction
+            message.reactions.push({
+              emoji: reaction,
+              users: [socket.user._id]
+            });
+          }
+          console.log(`User ${socket.user.username} added new reaction "${reaction}"`);
         }
         
         // Save the updated message
-        await message.save();
+        const updatedMessage = await message.save();
+        
+        // Populate user details
+        await updatedMessage.populate('reactions.users', 'username avatar');
+        
+        // Format reactions for the frontend
+        const formattedReactions = updatedMessage.reactions.map(reaction => ({
+          emoji: reaction.emoji,
+          users: reaction.users.map(user => ({
+            _id: user._id || user,
+            username: user.username || 'Unknown',
+            avatar: user.avatar
+          })),
+          count: reaction.users.length
+        }));
         
         // Prepare reaction data
         const reactionData = {
-          messageId: message._id,
-          channelId: message.channelId,
-          reactions: message.reactions,
+          messageId: updatedMessage._id,
+          channelId: updatedMessage.channelId,
+          reactions: formattedReactions,
           user: {
             userId: socket.user._id,
             username: socket.user.username,
@@ -355,8 +416,10 @@ export function initializeChannelsNamespace(io) {
           }
         };
         
+        console.log(`Broadcasting reaction update for message ${updatedMessage._id} with ${formattedReactions.length} reactions`);
+        
         // Broadcast to everyone in the channel including sender
-        io.of("/channels").to(message.channelId.toString()).emit("messageReaction", reactionData);
+        io.of("/channels").to(updatedMessage.channelId.toString()).emit("messageReaction", reactionData);
         
       } catch (error) {
         console.error("Error handling reaction:", error);

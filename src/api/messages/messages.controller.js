@@ -162,33 +162,47 @@ export const getChannelMessages = async (req, res) => {
       }
     }
 
-    // Get messages with pagination
+    // Get messages with pagination - populate userId for sender info
     const rawMessages = await Message.find({ channelId })
       .sort({ timestamp: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
-      .populate("userId", "username avatar");
+      .populate("userId", "username avatar")
+      .populate("reactions.users", "username avatar"); // Include reaction data
 
+    console.log(`Found ${rawMessages.length} messages for channel ${channelId}`);
+    
     // Format messages to match socket format
-    const messages = rawMessages.map(msg => ({
-      _id: msg._id,
-      channelId: msg.channelId,
-      workspaceId: msg.workspaceId || channel.workspaceId,
-      content: msg.content,
-      message: msg.content, // Include both for compatibility
-      image: msg.image,
-      createdAt: msg.createdAt,
-      timestamp: msg.createdAt,
-      senderId: msg.userId._id,
-      userId: msg.userId._id,
-      sender: {
+    const messages = rawMessages.map(msg => {
+      // Process reactions to include count and proper format
+      const formattedReactions = (msg.reactions || []).map(reaction => ({
+        emoji: reaction.emoji,
+        users: reaction.users || [],
+        count: reaction.users ? reaction.users.length : 0
+      }));
+      
+      return {
+        _id: msg._id,
+        channelId: msg.channelId,
+        workspaceId: msg.workspaceId || channel.workspaceId,
+        content: msg.content,
+        message: msg.content, // Include both for compatibility
+        image: msg.image,
+        createdAt: msg.createdAt,
+        timestamp: msg.createdAt,
+        senderId: msg.userId._id,
         userId: msg.userId._id,
-        username: msg.userId.username,
-        avatar: msg.userId.avatar
-      },
-      // Set isSentByMe flag
-      isSentByMe: msg.userId._id.toString() === userId.toString()
-    }));
+        sender: {
+          userId: msg.userId._id,
+          username: msg.userId.username,
+          avatar: msg.userId.avatar
+        },
+        // Set isSentByMe flag
+        isSentByMe: msg.userId._id.toString() === userId.toString(),
+        // Include reactions
+        reactions: formattedReactions
+      };
+    });
 
     // Get total count for pagination
     const total = await Message.countDocuments({ channelId });
@@ -388,39 +402,78 @@ export const reactToMessage = async (req, res) => {
         });
       }
     }
-
-    // Check if the reaction already exists
-    const existingReactionIndex = message.reactions.findIndex(
-      (reaction) => reaction.emoji === emoji
-    );
-
-    if (existingReactionIndex !== -1) {
-      // Check if user already reacted with this emoji
-      const userIndex = message.reactions[
-        existingReactionIndex
-      ].users.findIndex((id) => id.toString() === userId.toString());
-
+    
+    // Initialize reactions array if it doesn't exist
+    if (!message.reactions) {
+      message.reactions = [];
+    }
+    
+    // First, remove any existing reactions from this user (enforce one user, one reaction policy)
+    let removedExistingReaction = false;
+    let removedSameReaction = false;
+    
+    for (let i = message.reactions.length - 1; i >= 0; i--) {
+      const reaction = message.reactions[i];
+      
+      // Skip reactions without users array
+      if (!reaction.users) continue;
+      
+      // Find if user has already reacted with any emoji
+      const userIndex = reaction.users.findIndex(id => 
+        id.toString() === userId.toString()
+      );
+      
       if (userIndex !== -1) {
-        // User already reacted, so remove their reaction
-        message.reactions[existingReactionIndex].users.pull(userId);
-
-        // If no users left for this reaction, remove the reaction
-        if (message.reactions[existingReactionIndex].users.length === 0) {
-          message.reactions.splice(existingReactionIndex, 1);
+        // Check if it's the same emoji (toggle behavior)
+        if (reaction.emoji === emoji) {
+          removedSameReaction = true;
         }
-      } else {
+        
+        // Remove the user from this reaction
+        reaction.users.splice(userIndex, 1);
+        removedExistingReaction = true;
+        
+        // If no users left for this reaction, remove it
+        if (reaction.users.length === 0) {
+          message.reactions.splice(i, 1);
+        }
+      }
+    }
+    
+    // If we weren't toggling the same reaction off, add the new reaction
+    if (!removedSameReaction) {
+      // Check if this emoji reaction already exists
+      const existingReactionIndex = message.reactions.findIndex(
+        (reaction) => reaction.emoji === emoji
+      );
+
+      if (existingReactionIndex !== -1) {
         // Add user to existing reaction
         message.reactions[existingReactionIndex].users.push(userId);
+      } else {
+        // Create new reaction
+        message.reactions.push({
+          emoji,
+          users: [userId],
+        });
       }
-    } else {
-      // Create new reaction
-      message.reactions.push({
-        emoji,
-        users: [userId],
-      });
     }
 
     await message.save();
+    
+    // Populate user details for better frontend display
+    await message.populate('reactions.users', 'username avatar');
+
+    // Format reactions for the frontend
+    const formattedReactions = message.reactions.map(reaction => ({
+      emoji: reaction.emoji,
+      users: reaction.users.map(user => ({
+        _id: user._id || user,
+        username: user.username || 'Unknown',
+        avatar: user.avatar
+      })),
+      count: reaction.users.length
+    }));
 
     // Get the socket instance
     const io = req.app.get("io");
@@ -429,7 +482,7 @@ export const reactToMessage = async (req, res) => {
     const reactionData = {
       channelId: message.channelId,
       messageId: message._id,
-      reactions: message.reactions,
+      reactions: formattedReactions,
     };
 
     // For private channels, send only to allowed users
