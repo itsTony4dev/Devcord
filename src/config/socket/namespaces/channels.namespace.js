@@ -109,6 +109,90 @@ export function initializeChannelsNamespace(io) {
       }
     });
 
+    // Join all channels in a workspace
+    socket.on("joinWorkspace", async ({ workspaceId }) => {
+      if (!workspaceId) {
+        return socket.emit("error", { message: "Workspace ID is required" });
+      }
+      
+      try {
+        console.log(`User ${socket.user.username} joining all channels in workspace ${workspaceId}`);
+        
+        // Get all channels in the workspace
+        const channels = await Channel.find({ workspaceId });
+        
+        if (!channels || channels.length === 0) {
+          console.log(`No channels found for workspace ${workspaceId}`);
+          return socket.emit("workspaceChannels", { 
+            workspaceId, 
+            channels: [],
+            message: "No channels found for this workspace" 
+          });
+        }
+        
+        console.log(`Found ${channels.length} channels in workspace ${workspaceId}`);
+        
+        // Split channels into public and private
+        const publicChannels = channels.filter(channel => !channel.isPrivate);
+        const privateChannels = channels.filter(channel => 
+          channel.isPrivate && 
+          (
+            channel.createdBy.toString() === socket.user._id.toString() ||
+            channel.allowedUsers.some(id => id.toString() === socket.user._id.toString())
+          )
+        );
+        
+        // Join all accessible channels
+        const joinedChannels = [];
+        
+        // Join public channels
+        for (const channel of publicChannels) {
+          const channelId = channel._id.toString();
+          socket.join(channelId);
+          
+          // Track user in channel
+          if (!channelUsers[channelId]) {
+            channelUsers[channelId] = [];
+          }
+          
+          if (!channelUsers[channelId].includes(socket.user._id)) {
+            channelUsers[channelId].push(socket.user._id);
+          }
+          
+          joinedChannels.push(channelId);
+        }
+        
+        // Join private channels with access
+        for (const channel of privateChannels) {
+          const channelId = channel._id.toString();
+          socket.join(channelId);
+          
+          // Track user in channel
+          if (!channelUsers[channelId]) {
+            channelUsers[channelId] = [];
+          }
+          
+          if (!channelUsers[channelId].includes(socket.user._id)) {
+            channelUsers[channelId].push(socket.user._id);
+          }
+          
+          joinedChannels.push(channelId);
+        }
+        
+        console.log(`User ${socket.user.username} joined ${joinedChannels.length} channels in workspace ${workspaceId}`);
+        
+        // Send confirmation with joined channels
+        socket.emit("workspaceChannelsJoined", {
+          workspaceId,
+          joinedChannels
+        });
+        
+      } catch (error) {
+        console.error(`Error joining workspace channels for ${workspaceId}:`, error);
+        socket.emit("error", { message: "Failed to join workspace channels" });
+      }
+    });
+
     // Leave channel
     socket.on("leaveChannel", ({ channelId }) => {
       socket.leave(channelId);
@@ -205,6 +289,114 @@ export function initializeChannelsNamespace(io) {
       } catch (error) {
         console.error("Error sending message:", error);
         socket.emit("error", { message: "Failed to send message" });
+      }
+    });
+
+    // Handle message reactions
+    socket.on("addReaction", async ({ messageId, channelId, reaction }) => {
+      try {
+        const message = await Message.findById(messageId);
+        
+        if (!message) {
+          return socket.emit("error", { message: "Message not found" });
+        }
+        
+        // Get channel for access control
+        const channel = await Channel.findById(message.channelId);
+        if (!channel) {
+          return socket.emit("error", { message: "Channel not found" });
+        }
+        
+        // For private channels, verify access
+        if (channel.isPrivate) {
+          const hasAccess = channel.createdBy.toString() === socket.user._id.toString() ||
+            channel.allowedUsers.some(id => id.toString() === socket.user._id.toString());
+          
+          if (!hasAccess) {
+            return socket.emit("error", { message: "Access denied to private channel" });
+          }
+        }
+        
+        // Initialize reactions array if it doesn't exist
+        if (!message.reactions) {
+          message.reactions = [];
+        }
+        
+        // Check if user already reacted with this emoji
+        const existingReactionIndex = message.reactions.findIndex(r => 
+          r.userId.toString() === socket.user._id.toString() && 
+          r.reaction === reaction
+        );
+        
+        if (existingReactionIndex !== -1) {
+          // Remove the reaction if it already exists (toggle behavior)
+          message.reactions.splice(existingReactionIndex, 1);
+        } else {
+          // Add the new reaction
+          message.reactions.push({
+            userId: socket.user._id,
+            reaction,
+            username: socket.user.username
+          });
+        }
+        
+        // Save the updated message
+        await message.save();
+        
+        // Prepare reaction data
+        const reactionData = {
+          messageId: message._id,
+          channelId: message.channelId,
+          reactions: message.reactions,
+          user: {
+            userId: socket.user._id,
+            username: socket.user.username,
+            avatar: socket.user.avatar
+          }
+        };
+        
+        // Broadcast to everyone in the channel including sender
+        io.of("/channels").to(message.channelId.toString()).emit("messageReaction", reactionData);
+        
+      } catch (error) {
+        console.error("Error handling reaction:", error);
+        socket.emit("error", { message: "Failed to process reaction" });
+      }
+    });
+    
+    // Handle message deletion
+    socket.on("deleteMessage", async ({ messageId, channelId }) => {
+      try {
+        const message = await Message.findById(messageId);
+        
+        if (!message) {
+          return socket.emit("error", { message: "Message not found" });
+        }
+        
+        // Security: Only message creator can delete it
+        if (message.userId.toString() !== socket.user._id.toString()) {
+          return socket.emit("error", { message: "You can only delete your own messages" });
+        }
+        
+        // Delete the message
+        await Message.findByIdAndDelete(messageId);
+        
+        // Prepare deletion data
+        const deletionData = {
+          messageId,
+          channelId: message.channelId,
+          userId: socket.user._id,
+        };
+        
+        // Broadcast to everyone in the channel including sender
+        io.of("/channels").to(message.channelId.toString()).emit("messageDeleted", deletionData);
+        
+        // Confirm to sender
+        socket.emit("messageDeletionConfirmed", { success: true, messageId });
+        
+      } catch (error) {
+        console.error("Error deleting message:", error);
+        socket.emit("error", { message: "Failed to delete message" });
       }
     });
 
