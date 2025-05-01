@@ -193,12 +193,12 @@ export const signout = (_req, res) => {
     res.clearCookie("jwt", {
       httpOnly: true,
       secure: process.env.NODE_ENV !== "development",
-      sameSite: "none",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     });
     res.clearCookie("auth_token", {
       httpOnly: true,
       secure: process.env.NODE_ENV !== "development",
-      sameSite: "none",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     });
     return res
       .status(200)
