@@ -318,6 +318,11 @@ export function initializeChannelsNamespace(io) {
           }
         }
         
+        // Prevent users from reacting to their own messages
+        if (message.userId.toString() === socket.user._id.toString()) {
+          return socket.emit("error", { message: "You cannot react to your own message" });
+        }
+        
         // Initialize reactions array if it doesn't exist
         if (!message.reactions) {
           message.reactions = [];
@@ -327,6 +332,10 @@ export function initializeChannelsNamespace(io) {
         
         // First, find and remove any existing reactions from this user (one user, one reaction policy)
         let removedExistingReaction = false;
+        let wasRemovingSameEmoji = false;
+        
+        console.log(`Checking if user ${currentUserId} has existing reactions`);
+        
         for (let i = message.reactions.length - 1; i >= 0; i--) {
           const r = message.reactions[i];
           if (!r.users) continue;
@@ -337,58 +346,53 @@ export function initializeChannelsNamespace(io) {
           );
           
           if (userIndexInReaction !== -1) {
+            console.log(`Found existing reaction: ${r.emoji} for user ${currentUserId}`);
+            
+            // Check if removing the same emoji they clicked on
+            if (r.emoji === reaction) {
+              wasRemovingSameEmoji = true;
+              console.log(`User is removing the same emoji: ${reaction}`);
+            }
+            
             // Remove user from this reaction
             r.users.splice(userIndexInReaction, 1);
             removedExistingReaction = true;
             
             // Remove the entire reaction if no users left
             if (r.users.length === 0) {
+              console.log(`Removing reaction ${r.emoji} entirely as no users left`);
               message.reactions.splice(i, 1);
             }
           }
         }
         
-        // If we removed an existing reaction and the new one is the same, we're done (toggle behavior)
-        if (removedExistingReaction) {
-          const wasTogglingOff = message.reactions.some(r => r.emoji === reaction);
-          if (wasTogglingOff) {
-            // User was trying to remove their existing reaction, so we're done
-            console.log(`User ${socket.user.username} removed their reaction "${reaction}"`);
-          } else {
-            // User is changing to a new emoji, add the new reaction
-            const existingReactionIndex = message.reactions.findIndex(r => r.emoji === reaction);
-            
-            if (existingReactionIndex !== -1) {
-              // Add user to existing reaction
-              message.reactions[existingReactionIndex].users.push(socket.user._id);
-            } else {
-              // Create new reaction
-              message.reactions.push({
-                emoji: reaction,
-                users: [socket.user._id]
-              });
-            }
-            console.log(`User ${socket.user.username} changed reaction to "${reaction}"`);
-          }
-        } else {
-          // User hasn't reacted yet, add their reaction
+        // If the user clicked on the same emoji they already reacted with, just remove it (toggle off)
+        // Otherwise, add the new reaction
+        if (!wasRemovingSameEmoji) {
+          console.log(`Adding/changing reaction to: ${reaction}`);
+          // User is adding a new reaction or changing to a different one
           const existingReactionIndex = message.reactions.findIndex(r => r.emoji === reaction);
           
           if (existingReactionIndex !== -1) {
             // Add user to existing reaction
+            console.log(`Adding user to existing ${reaction} reaction`);
             message.reactions[existingReactionIndex].users.push(socket.user._id);
           } else {
             // Create new reaction
+            console.log(`Creating new reaction: ${reaction}`);
             message.reactions.push({
               emoji: reaction,
               users: [socket.user._id]
             });
           }
-          console.log(`User ${socket.user.username} added new reaction "${reaction}"`);
+        } else {
+          console.log(`User toggled off their ${reaction} reaction - not adding a new one`);
         }
         
         // Save the updated message
         const updatedMessage = await message.save();
+        
+        console.log(`Updated message reactions:`, updatedMessage.reactions);
         
         // Populate user details
         await updatedMessage.populate('reactions.users', 'username avatar');
