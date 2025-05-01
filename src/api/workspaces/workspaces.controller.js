@@ -713,6 +713,12 @@ export const removeWorkspaceMember = async (req, res) => {
       workspaceId
     });
 
+    // Remove the user from the workspace
+    await Workspace.findOneAndUpdate(
+      { _id: workspaceId },
+      { $pull: { invitedUsers: memberIdToRemove } }
+    );
+
     // Return success response
     return res.status(200).json({
       success: true,

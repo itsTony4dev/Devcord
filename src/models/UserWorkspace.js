@@ -47,6 +47,7 @@ userWorkspaceSchema.statics.findWorkspaceMembers = async function (
     .sort({ joinedAt: 1 });
 };
 
+
 userWorkspaceSchema.statics.isMember = async function (userId, workspaceId) {
   const membership = await this.findOne({
     userId: userId,
