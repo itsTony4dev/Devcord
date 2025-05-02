@@ -238,14 +238,24 @@ export const deleteDirectMessage = async (req, res) => {
     // Get the socket instance
     const io = req.app.get("io");
 
-    // Notify the receiver about deleted message
+    // Prepare deletion data
+    const deletionData = {
+      messageId: message._id,
+      senderId: message.senderId,
+      receiverId: message.receiverId,
+    };
+
+    // 1. Notify the receiver about deleted message
     const receiverSocketId = io.userSocketMap?.[message.receiverId.toString()];
     if (receiverSocketId) {
-      io.of("/dm").to(receiverSocketId).emit("directMessageDeleted", {
-        messageId: message._id,
-        senderId: message.senderId,
-        receiverId: message.receiverId,
-      });
+      io.of("/dm").to(receiverSocketId).emit("directMessageDeleted", deletionData);
+    }
+    
+    // 2. Also notify the sender (current user) about the deletion
+    // This ensures the UI updates correctly for the sender as well
+    const senderSocketId = io.userSocketMap?.[message.senderId.toString()];
+    if (senderSocketId) {
+      io.of("/dm").to(senderSocketId).emit("directMessageDeleted", deletionData);
     }
 
     res.status(200).json({

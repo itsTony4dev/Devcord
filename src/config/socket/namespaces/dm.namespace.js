@@ -1,4 +1,5 @@
 import { socketAuthMiddleware } from "../middleware/auth.middleware.js";
+import { DirectMessage } from "../../../models/index.js";
 
 export function initializeDMNamespace(io) {
   const dmNamespace = io.of("/dm");
@@ -49,6 +50,49 @@ export function initializeDMNamespace(io) {
       } catch (error) {
         console.error("Error in markAsRead event handler:", error);
         socket.emit("error", { message: "Failed to mark messages as read" });
+      }
+    });
+
+    // Handle direct message deletion via socket
+    socket.on("deleteMessage", async ({ messageId }) => {
+      try {
+        // Find the message
+        const message = await DirectMessage.findById(messageId);
+        
+        if (!message) {
+          return socket.emit("error", { message: "Message not found" });
+        }
+        
+        // Security: Only message creator can delete it
+        if (message.senderId.toString() !== socket.user._id.toString()) {
+          return socket.emit("error", { message: "You can only delete your own messages" });
+        }
+        
+        // Soft delete the message
+        message.isDeleted = true;
+        await message.save();
+        
+        // Prepare deletion data
+        const deletionData = {
+          messageId: message._id,
+          senderId: message.senderId,
+          receiverId: message.receiverId
+        };
+        
+        // Notify the sender (current user)
+        socket.emit("directMessageDeleted", deletionData);
+        
+        // Notify the receiver
+        const receiverSocketId = dmUserSocketMap[message.receiverId.toString()];
+        if (receiverSocketId) {
+          dmNamespace.to(receiverSocketId).emit("directMessageDeleted", deletionData);
+        }
+        
+        // Send confirmation
+        socket.emit("messageDeletionConfirmed", { success: true, messageId });
+      } catch (error) {
+        console.error("Error deleting direct message:", error);
+        socket.emit("error", { message: "Failed to delete message" });
       }
     });
 

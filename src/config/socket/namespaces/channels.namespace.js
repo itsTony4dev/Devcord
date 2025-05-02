@@ -5,14 +5,40 @@ import cloudinary from "../../../utils/cloudinary/cloudinary.js";
 export function initializeChannelsNamespace(io) {
   const channelsNamespace = io.of("/channels");
   
-  // Store users in channels
+  // Store users in channels - Map channelId to array of userIds
   const channelUsers = {};
+  // Track user socket associations - Map userId to socketId
+  const userSocketMap = {};
 
   // Use shared authentication middleware
   channelsNamespace.use(socketAuthMiddleware);
 
   channelsNamespace.on("connection", async (socket) => {
-    console.log(`User connected to channels namespace: ${socket.user.username}`);
+    console.log(`User connected to channels namespace: ${socket.user.username} (${socket.user._id}) [Socket ID: ${socket.id}]`);
+    
+    // Track this user's socket
+    userSocketMap[socket.user._id] = socket.id;
+    
+    // When a user disconnects, remove their socket mapping
+    socket.on("disconnect", () => {
+      console.log(`User disconnected from channels namespace: ${socket.user.username} (${socket.user._id})`);
+      
+      // Remove user from all channels they were in
+      Object.keys(channelUsers).forEach(channelId => {
+        if (channelUsers[channelId] && channelUsers[channelId].includes(socket.user._id)) {
+          channelUsers[channelId] = channelUsers[channelId].filter(id => id !== socket.user._id);
+          
+          // Notify channel about user leaving
+          socket.to(channelId).emit("userLeftChannel", {
+            channelId,
+            userId: socket.user._id
+          });
+        }
+      });
+      
+      // Remove from socket map
+      delete userSocketMap[socket.user._id];
+    });
 
     try {
       // Get user's workspace
@@ -38,20 +64,49 @@ export function initializeChannelsNamespace(io) {
           }
         });
         
+        // Join private channels user has access to
+        const privateChannels = channels.filter(channel => 
+          channel.isPrivate && 
+          (channel.createdBy.toString() === socket.user._id.toString() || 
+           channel.allowedUsers.some(id => id.toString() === socket.user._id.toString()))
+        );
+        
+        privateChannels.forEach(channel => {
+          const channelId = channel._id.toString();
+          socket.join(channelId);
+          if (!channelUsers[channelId]) {
+            channelUsers[channelId] = [];
+          }
+          if (!channelUsers[channelId].includes(socket.user._id)) {
+            channelUsers[channelId].push(socket.user._id);
+          }
+        });
+        
         // Send user's channel list
         socket.emit("userChannels", {
           publicChannels: publicChannels.map(ch => ch._id),
-          privateChannels: channels
-            .filter(ch => ch.isPrivate && 
-              (ch.createdBy.toString() === socket.user._id.toString() || 
-               ch.allowedUsers.some(id => id.toString() === socket.user._id.toString())))
-            .map(ch => ch._id)
+          privateChannels: privateChannels.map(ch => ch._id)
         });
       }
     } catch (error) {
       console.error("Error initializing workspace channels:", error);
       socket.emit("error", { message: "Failed to initialize workspace channels" });
     }
+
+    // Handle user presence events
+    socket.on("userPresence", ({ channelId, status }) => {
+      if (!channelId) return;
+      
+      console.log(`User ${socket.user.username} (${socket.user._id}) presence update: ${status} in channel ${channelId}`);
+      
+      // Broadcast user presence to channel
+      socket.to(channelId).emit("userPresenceUpdate", {
+        channelId,
+        userId: socket.user._id,
+        username: socket.user.username,
+        status
+      });
+    });
 
     // Join channel
     socket.on("joinChannel", async ({ channelId }) => {
@@ -103,6 +158,9 @@ export function initializeChannelsNamespace(io) {
           channelId,
           users: channelUsersList
         });
+        
+        console.log(`User ${socket.user.username} (${socket.user._id}) [Socket ID: ${socket.id}] joined channel ${channelId}`);
+        console.log(`Current users in channel ${channelId}:`, channelUsers[channelId]);
       } catch (error) {
         console.error("Error joining channel:", error);
         socket.emit("error", { message: "Failed to join channel" });
@@ -214,7 +272,7 @@ export function initializeChannelsNamespace(io) {
       });
     });
 
-    // Send message to channel - UPDATED
+    // Send message to channel 
     socket.on("sendMessage", async ({ channelId, workspaceId, message, image, timestamp }) => {
       if (!message && !image) return;
       
@@ -226,13 +284,13 @@ export function initializeChannelsNamespace(io) {
         }
         
         // For private channels, verify access
-        if (channel.isPrivate) {
-          const hasAccess = channel.createdBy.toString() === socket.user._id.toString() ||
-            channel.allowedUsers.some(id => id.toString() === socket.user._id.toString());
-          
-          if (!hasAccess) {
-            return socket.emit("error", { message: "Access denied to private channel" });
-          }
+        const isChannelPrivate = channel.isPrivate;
+        const isChannelOwner = channel.createdBy.toString() === socket.user._id.toString();
+        const isChannelMember = channel.allowedUsers.some(id => id.toString() === socket.user._id.toString());
+        const hasAccess = isChannelOwner || isChannelMember;
+        
+        if (isChannelPrivate && !hasAccess) {
+          return socket.emit("error", { message: "Access denied to private channel" });
         }
         
         // Process image if provided
@@ -274,11 +332,56 @@ export function initializeChannelsNamespace(io) {
           senderId: socket.user._id, // Include explicit senderId for easier access
           userId: socket.user._id, // Include userId for compatibility
           timestamp: timestamp || new Date().toISOString(),
-          createdAt: timestamp || new Date().toISOString()
+          createdAt: timestamp || new Date().toISOString(),
+          channelName: channel.name // Add channel name for notifications
         };
         
-        // Broadcast ONLY to the specific channel room
-        socket.to(channelId).emit("receiveMessage", messageData);
+        // Log information about the message being sent
+        console.log(`User ${socket.user.username} (${socket.user._id}) sent message to channel ${channelId} (private: ${isChannelPrivate})`);
+        
+        if (isChannelPrivate) {
+          // Special handling for private channels
+          if (isChannelOwner) {
+            // Owner sending to members
+            console.log(`Channel owner sending to ${channel.allowedUsers.length} members`);
+            
+            // Ensure each allowed user gets the message
+            for (const userId of channel.allowedUsers) {
+              const recipientId = userId.toString();
+              const recipientSocketId = userSocketMap[recipientId];
+              
+              if (recipientSocketId) {
+                console.log(`Direct message to member ${recipientId} via socket ${recipientSocketId}`);
+                channelsNamespace.to(recipientSocketId).emit("receiveMessage", messageData);
+              }
+            }
+          } else if (isChannelMember) {
+            // Member sending to owner
+            const ownerId = channel.createdBy.toString();
+            const ownerSocketId = userSocketMap[ownerId];
+            
+            if (ownerSocketId) {
+              console.log(`Member sending to owner ${ownerId} via socket ${ownerSocketId}`);
+              channelsNamespace.to(ownerSocketId).emit("receiveMessage", messageData);
+            }
+            
+            // Also send to other members in the channel
+            for (const userId of channel.allowedUsers) {
+              const memberId = userId.toString();
+              // Skip sender
+              if (memberId === socket.user._id.toString()) continue;
+              
+              const memberSocketId = userSocketMap[memberId];
+              if (memberSocketId) {
+                console.log(`Member sending to other member ${memberId} via socket ${memberSocketId}`);
+                channelsNamespace.to(memberSocketId).emit("receiveMessage", messageData);
+              }
+            }
+          }
+        } else {
+          // Public channel - broadcast to room (all joined members)
+          socket.to(channelId).emit("receiveMessage", messageData);
+        }
         
         // Also send back to sender with acknowledgment
         socket.emit("messageSent", { 
@@ -445,6 +548,12 @@ export function initializeChannelsNamespace(io) {
           return socket.emit("error", { message: "You can only delete your own messages" });
         }
         
+        // Get channel information to handle private channels properly
+        const channel = await Channel.findById(message.channelId);
+        if (!channel) {
+          return socket.emit("error", { message: "Channel not found" });
+        }
+        
         // Delete the message
         await Message.findByIdAndDelete(messageId);
         
@@ -455,10 +564,51 @@ export function initializeChannelsNamespace(io) {
           userId: socket.user._id,
         };
         
-        // Broadcast to everyone in the channel including sender
-        io.of("/channels").to(message.channelId.toString()).emit("messageDeleted", deletionData);
+        if (channel.isPrivate) {
+          // For private channels, send deletion events individually
+          const isChannelOwner = channel.createdBy.toString() === socket.user._id.toString();
+          
+          if (isChannelOwner) {
+            // Owner deleting - notify all members
+            for (const userId of channel.allowedUsers) {
+              const recipientId = userId.toString();
+              const recipientSocketId = userSocketMap[recipientId];
+              
+              if (recipientSocketId) {
+                channelsNamespace.to(recipientSocketId).emit("messageDeleted", deletionData);
+              }
+            }
+          } else {
+            // Member deleting - notify owner and other members
+            const ownerId = channel.createdBy.toString();
+            const ownerSocketId = userSocketMap[ownerId];
+            
+            if (ownerSocketId) {
+              channelsNamespace.to(ownerSocketId).emit("messageDeleted", deletionData);
+            }
+            
+            // Also notify other members
+            for (const userId of channel.allowedUsers) {
+              const memberId = userId.toString();
+              // Skip sender
+              if (memberId === socket.user._id.toString()) continue;
+              
+              const memberSocketId = userSocketMap[memberId];
+              if (memberSocketId) {
+                channelsNamespace.to(memberSocketId).emit("messageDeleted", deletionData);
+              }
+            }
+          }
+        } else {
+          // For public channels, broadcast to the room
+          socket.to(message.channelId.toString()).emit("messageDeleted", deletionData);
+        }
         
-        // Confirm to sender
+        // Send the deletion event to the sender as well using messageDeleted instead of messageDeletionConfirmed
+        // This ensures the same event handler is used for all clients including the sender
+        socket.emit("messageDeleted", deletionData);
+        
+        // Also send a separate success confirmation if needed
         socket.emit("messageDeletionConfirmed", { success: true, messageId });
         
       } catch (error) {
@@ -469,23 +619,6 @@ export function initializeChannelsNamespace(io) {
 
     // Typing indicator in channel - disabled for this implementation
     // socket.on("typing", async ({ channelId, isTyping }) => { ... });
-
-    // Handle disconnection
-    socket.on("disconnect", () => {
-      console.log(`User disconnected from channels namespace: ${socket.user.username}`);
-      
-      // Remove from all channels
-      Object.keys(channelUsers).forEach(channelId => {
-        if (channelUsers[channelId].includes(socket.user._id)) {
-          channelUsers[channelId] = channelUsers[channelId].filter(id => id !== socket.user._id);
-          
-          // Clean up empty channels
-          if (channelUsers[channelId].length === 0) {
-            delete channelUsers[channelId];
-          }
-        }
-      });
-    });
   });
 
   return channelUsers;
