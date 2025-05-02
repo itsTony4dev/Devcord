@@ -1,4 +1,4 @@
-import { Channel } from "../../models/index.js";
+import { Channel, UserWorkspace } from "../../models/index.js";
 
 export const createChannel = async (req, res) => {
   try {
@@ -14,6 +14,56 @@ export const createChannel = async (req, res) => {
       createdBy: userId,
     });
     await channel.save();
+
+    // Get the socket instance for real-time notifications
+    const io = req.app.get("io");
+    
+    if (io) {
+      // Enhanced channel creation notification
+      try {
+        // Get all members of the workspace to notify them
+        const workspaceMembers = await UserWorkspace.find({ workspaceId });
+        
+        // Prepare consistent channel data for all notifications
+        const channelData = {
+          _id: channel._id,
+          id: channel._id,
+          channelId: channel._id,
+          channelName: channel.channelName,
+          isPrivate: channel.isPrivate,
+          workspaceId: channel.workspaceId,
+          createdBy: channel.createdBy,
+          allowedUsers: channel.allowedUsers
+        };
+        
+        // For each workspace member, send a channelCreated event
+        for (const membership of workspaceMembers) {
+          // Get the member's socket ID if they're online
+          const memberSocketId = io.userSocketMap?.[membership.userId.toString()];
+          
+          // If private channel, only notify the creator and allowed users
+          if (isPrivate) {
+            const isCreator = membership.userId.toString() === userId.toString();
+            const isAllowed = Array.isArray(allowedUsers) && 
+                              allowedUsers.some(id => id.toString() === membership.userId.toString());
+            
+            // Skip members without access to this private channel
+            if (!isCreator && !isAllowed) continue;
+          }
+          
+          // If member is online, send the event directly to their socket
+          if (memberSocketId) {
+            io.of("/channels").to(memberSocketId).emit("channelCreated", channelData);
+            console.log(`Sent channelCreated event to user ${membership.userId} (socket: ${memberSocketId})`);
+          }
+        }
+        
+        console.log(`Notified all relevant members about new ${isPrivate ? 'private' : 'public'} channel: ${channel.channelName}`);
+      } catch (socketError) {
+        // Just log socket errors but don't block the channel creation response
+        console.error("Error sending channel creation notifications:", socketError);
+      }
+    }
 
     res.status(201).json({
       success: true,

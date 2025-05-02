@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import { Workspace, User, UserWorkspace, DirectMessage, Friends } from "../../models/index.js";
+import { Workspace, User, UserWorkspace, DirectMessage, Friends, Channel } from "../../models/index.js";
 
 export const getWorkspaces = async (req, res) => {
   try {
@@ -104,20 +104,71 @@ export const updateWorkspace = async (req, res) => {
 
 export const deleteWorkspace = async (req, res) => {
   try {
-    const { id } = req.params;
-    const workspace = await Workspace.findByIdAndDelete(id);
+    const { id: workspaceId } = req.params;
+    const userId = req.user._id;
+
+    // Find workspace
+    const workspace = await Workspace.findById(workspaceId);
+    
     if (!workspace) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Workspace not found" });
+      return res.status(404).json({ 
+        success: false, 
+        message: "Workspace not found" 
+      });
     }
+    
+    // Check if user is authorized to delete the workspace
+    if (workspace.createdBy.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the workspace owner can delete the workspace"
+      });
+    }
+    
+    // Get all workspace members before deletion for notifications
+    const workspaceMembers = await UserWorkspace.find({ workspaceId });
+    const memberIds = workspaceMembers.map(member => member.userId.toString());
+    
+    // Delete all associated data
+    await Promise.all([
+      // Delete workspace
+      Workspace.findByIdAndDelete(workspaceId),
+      
+      // Delete all workspace memberships
+      UserWorkspace.deleteMany({ workspaceId }),
+      
+      // Delete all channels in the workspace
+      Channel.deleteMany({ workspaceId }),
+
+      // Consider deleting other related data like messages in those channels
+    ]);
+    
+    // Get the socket instance for real-time notifications
+    const io = req.app.get("io");
+    
+    // Notify all members about workspace deletion
+    if (io) {
+      for (const memberId of memberIds) {
+        const memberSocketId = io.userSocketMap?.[memberId];
+        
+        if (memberSocketId) {
+          io.of("/dm").to(memberSocketId).emit("workspaceDeleted", {
+            workspaceId,
+            message: `Workspace "${workspace.workspaceName}" has been deleted`
+          });
+          
+          console.log(`Sent workspaceDeleted event to user ${memberId} (socket: ${memberSocketId})`);
+        }
+      }
+    }
+    
     res.status(200).json({
       success: true,
       message: "Workspace deleted successfully",
     });
   } catch (error) {
     console.error("Error in deleteWorkspace controller:", error.message);
-    res.status(500).json({ success: false, messsage: "Internal server error" });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -315,8 +366,9 @@ export const sendWorkspaceInvite = async (req, res) => {
 export const joinWorkspace = async (req, res) => {
   try {
     const { inviteCode } = req.params;
+    const userId = req.user._id;
 
-    // Check if invite code is valid
+    // Find workspace by invite code
     const workspace = await Workspace.findOne({ inviteCode });
     if (!workspace) {
       return res.status(404).json({
@@ -325,22 +377,13 @@ export const joinWorkspace = async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
     // Check if user is already a member of this workspace
-    const userWorkspace = await UserWorkspace.findOne({
-      userId: user._id,
+    const existingMembership = await UserWorkspace.findOne({
+      userId,
       workspaceId: workspace._id,
     });
 
-    if (userWorkspace) {
-      // User is already a member
+    if (existingMembership) {
       return res.status(400).json({
         success: false,
         message: "You are already a member of this workspace",
@@ -350,7 +393,7 @@ export const joinWorkspace = async (req, res) => {
     }
 
     // If workspace creator attempts to join their own workspace
-    if (workspace.createdBy.toString() === user._id.toString()) {
+    if (workspace.createdBy.toString() === userId.toString()) {
       return res.status(400).json({
         success: false,
         message: "You are the owner of this workspace",
@@ -360,13 +403,10 @@ export const joinWorkspace = async (req, res) => {
     }
 
     // Check if user is invited
-    const isInvited =
-      workspace.invitedUsers &&
-      workspace.invitedUsers.some(
-        (id) => id.toString() === user._id.toString()
-      );
+    const isInvited = workspace.invitedUsers && 
+      workspace.invitedUsers.some(id => id.toString() === userId.toString());
 
-    if (!isInvited) {
+    if (!isInvited && workspace.isPrivate) {
       return res.status(403).json({
         success: false,
         message: "You are not invited to join this workspace",
@@ -375,13 +415,39 @@ export const joinWorkspace = async (req, res) => {
 
     // Add user to workspace
     const newUserWorkspace = new UserWorkspace({
-      userId: user._id,
+      userId,
       workspaceId: workspace._id,
       role: "member",
       joinedAt: new Date(),
     });
 
     await newUserWorkspace.save();
+
+    // Get the socket instance for real-time notifications
+    const io = req.app.get("io");
+    
+    // Get the user's socket ID if they are connected
+    const userSocketId = io.userSocketMap?.[userId.toString()];
+    
+    // Send a real-time update to the user if they're online
+    if (userSocketId) {
+      const workspaceInfo = {
+        _id: workspace._id,
+        id: workspace._id,
+        workspaceId: workspace._id,
+        workspaceName: workspace.workspaceName,
+        name: workspace.workspaceName,
+        description: workspace.description,
+        role: "member",
+        isInvited: true,
+        isOwned: false
+      };
+      
+      // Emit the event to the user with the workspace info
+      io.of("/dm").to(userSocketId).emit("workspaceJoined", workspaceInfo);
+      
+      console.log(`Sent workspaceJoined event to user ${userId} (socket: ${userSocketId})`);
+    }
 
     res.status(201).json({
       success: true,
