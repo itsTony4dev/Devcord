@@ -273,7 +273,7 @@ export function initializeChannelsNamespace(io) {
     });
 
     // Send message to channel 
-    socket.on("sendMessage", async ({ channelId, workspaceId, message, image, timestamp }) => {
+    socket.on("sendMessage", async ({ channelId, workspaceId, message, image, timestamp, isCode, language }) => {
       if (!message && !image) return;
       
       try {
@@ -312,6 +312,8 @@ export function initializeChannelsNamespace(io) {
           content: message,
           image: imageUrl,
           workspaceId: workspaceId || channel.workspaceId,
+          isCode: isCode || false,
+          lang: language || null
         });
         
         await newMessage.save();
@@ -322,18 +324,20 @@ export function initializeChannelsNamespace(io) {
           channelId,
           workspaceId: workspaceId || channel.workspaceId,
           content: message,
-          message, // Include both content and message for compatibility
+          message,
           image: imageUrl,
           sender: {
             userId: socket.user._id,
             username: socket.user.username,
             avatar: socket.user.avatar
           },
-          senderId: socket.user._id, // Include explicit senderId for easier access
-          userId: socket.user._id, // Include userId for compatibility
+          senderId: socket.user._id,
+          userId: socket.user._id,
           timestamp: timestamp || new Date().toISOString(),
           createdAt: timestamp || new Date().toISOString(),
-          channelName: channel.name // Add channel name for notifications
+          channelName: channel.name,
+          isCode: isCode || false,
+          language: language || null
         };
         
         // Log information about the message being sent
