@@ -24,11 +24,6 @@ A modern developer chat platform built with Node.js, Express, and MongoDB.
   - Express Validator for input validation
   - Swagger for API documentation
 
-- **Frontend:**
-  - React.js
-  - Tailwind CSS
-  - Socket.IO for real-time features
-
 ## Prerequisites
 
 - Node.js (v14 or higher)
