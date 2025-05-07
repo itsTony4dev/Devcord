@@ -152,5 +152,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Express.js](https://expressjs.com/)
 - [MongoDB](https://www.mongodb.com/)
-- [React](https://reactjs.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
