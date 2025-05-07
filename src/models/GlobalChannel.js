@@ -1,26 +1,31 @@
 import mongoose from "mongoose";
 
-const globalChannelSchema = new mongoose.Schema({
-  name: {
+const scrapedJobsSchema = new mongoose.Schema({
+  title: {
     type: String,
-    default: "Jobs Channel",
-    immutable: true
+    required: true,
   },
-  description: {
+  category: {
     type: String,
-    default: "A channel for posting relevant job opportunities.",
-    immutable: true
+    required: true,
   },
-  jobPostings: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "JobPosting"
-  }],
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    immutable: true
-  }
+  company: {
+    type: String,
+  },
+  location: {
+    type: String,
+  },
+  jobType: {
+    enum: ["part-time,", "full-time", "contract"],
+  },
+  level: {
+    enum: ["internship, junior, senior, lead, manager"],
+  },
+  applicationLink: {
+    type: String,
+    required: true,
+  },
 });
 
-const GlobalChannel = mongoose.model("GlobalChannel", globalChannelSchema);
-export default GlobalChannel;
+const ScrapedJobs = mongoose.model("ScrapedJobs", scrapedJobsSchema);
+export default ScrapedJobs;

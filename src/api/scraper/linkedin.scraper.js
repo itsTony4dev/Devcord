@@ -40,7 +40,7 @@ function categorizeJob(title) {
 
 function detectJobLevel(jobTitle) {
   const lowerTitle = jobTitle.toLowerCase();
-  if (lowerTitle.includes("intern")) return "intern";
+  if (lowerTitle.includes("intern")) return "internship";
   if (lowerTitle.includes("internship")) return "internship";
   if (lowerTitle.includes("junior") || lowerTitle.includes("jr"))
     return "junior";
