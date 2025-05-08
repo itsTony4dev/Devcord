@@ -68,17 +68,21 @@ export const sendFriendRequest = async (req, res) => {
 
     // Send real-time notification using Socket.IO
     const io = req.app.get("io");
-    const receiverSocketId = io.userSocketMap[friendId];
+    
+    // Use the friends namespace instead of default namespace
+    const friendsNamespace = io.of("/friends");
+    const friendsSocketMap = io.friendsUserSocketMap || {};
+    const receiverSocketId = friendsSocketMap[friendId];
 
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("friendRequest", {
+      friendsNamespace.to(receiverSocketId).emit("newFriendRequest", {
         requestId: friendRequest._id,
-        user: {
-          id: userId,
+        sender: {
+          userId: userId,
           username: sender.username,
-          avatar: sender.avatar,
+          avatar: sender.avatar
         },
-        createdAt: friendRequest.createdAt,
+        timestamp: new Date().toISOString()
       });
     }
 
@@ -299,7 +303,8 @@ export const removeFriend = async (req, res) => {
     const { userId: friendId } = req.params;
     const userId = req.user.id;
 
-    const friendship = await Friends.findOneAndDelete({
+    // Check if friend relationship exists
+    const friendship = await Friends.findOne({
       $or: [
         { userId, friendId, status: "accepted" },
         { userId: friendId, friendId: userId, status: "accepted" },
@@ -309,11 +314,35 @@ export const removeFriend = async (req, res) => {
     if (!friendship) {
       return res.status(404).json({
         success: false,
-        message: "Friend not found",
+        message: "Friend relationship not found",
       });
     }
 
-    await DirectMessage.deleteConversation(userId, friendId);
+    // Delete the friendship
+    await Friends.findByIdAndDelete(friendship._id);
+
+    // Get user info for the real-time notification
+    const user = await User.findById(userId).select("username avatar");
+
+    // Send real-time notification using Socket.IO
+    const io = req.app.get("io");
+    
+    // Get socket ID from friends namespace
+    const friendsNamespace = io.of("/friends");
+    
+    // Access the socket map correctly - it's stored in the 'io' object
+    // Make sure we have a fallback if it doesn't exist
+    const userSocketMap = io.userSocketMap || {};
+    const friendSocketId = userSocketMap[friendId];
+
+    if (friendSocketId) {
+      // Use regular io to emit the event (compatible with existing client code)
+      io.to(friendSocketId).emit("friendRemoved", {
+        userId,
+        username: user.username,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     res.status(200).json({
       success: true,

@@ -75,6 +75,23 @@ export function initializeFriendsNamespace(io) {
       }
     });
 
+    // Remove friend
+    socket.on("removeFriend", async ({ friendId }) => {
+      try {
+        const friendSocketId = friendsUserSocketMap[friendId];
+        if (friendSocketId) {
+          friendsNamespace.to(friendSocketId).emit("friendRemoved", {
+            userId: socket.user._id,
+            username: socket.user.username,
+            timestamp: new Date().toISOString()
+          });
+        }
+      } catch (error) {
+        console.error("Error removing friend:", error);
+        socket.emit("error", { message: "Failed to remove friend" });
+      }
+    });
+
     // Online status
     socket.on("onlineStatus", ({ isOnline }) => {
       // Notify all friends about online status change
