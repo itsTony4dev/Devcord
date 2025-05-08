@@ -326,23 +326,31 @@ export const removeFriend = async (req, res) => {
 
     // Send real-time notification using Socket.IO
     const io = req.app.get("io");
-    
-    // Get socket ID from friends namespace
     const friendsNamespace = io.of("/friends");
     
-    // Access the socket map correctly - it's stored in the 'io' object
-    // Make sure we have a fallback if it doesn't exist
-    const userSocketMap = io.userSocketMap || {};
-    const friendSocketId = userSocketMap[friendId];
+    // Get socket IDs for both users
+    const friendsSocketMap = io.friendsUserSocketMap || {};
+    const friendSocketId = friendsSocketMap[friendId];
+    const userSocketId = friendsSocketMap[userId];
 
+    // Emit to both users to ensure real-time updates
     if (friendSocketId) {
-      // Use regular io to emit the event (compatible with existing client code)
-      io.to(friendSocketId).emit("friendRemoved", {
+      friendsNamespace.to(friendSocketId).emit("friendRemoved", {
         userId,
         username: user.username,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
+
+    if (userSocketId) {
+      friendsNamespace.to(userSocketId).emit("friendRemoved", {
+        userId: friendId,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Delete the direct message conversation
+    await DirectMessage.deleteConversation(userId, friendId);
 
     res.status(200).json({
       success: true,

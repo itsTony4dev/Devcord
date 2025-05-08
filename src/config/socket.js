@@ -66,6 +66,7 @@ const userWorkspaceMap = {};
 // Attach socket maps to io instance for access in controllers
 io.userSocketMap = dmUserSocketMap;
 io.channelUsers = channelUsers;
+io.friendsUserSocketMap = friendsUserSocketMap;
 io.userWorkspaceMap = userWorkspaceMap;
 
 // Helper functions for controllers
