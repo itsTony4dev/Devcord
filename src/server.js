@@ -58,6 +58,7 @@ app.use(errorHandler);
 
 // Routes
 app.use('/api/auth', authRouter);
+app.use('/api/scraper', scraperRouter);
 app.use(authenticate);
 app.use('/api/users', usersRouter);
 app.use('/api/workspaces', workspacesRouter);
@@ -65,7 +66,6 @@ app.use('/api/workspace/channels', channelsRouter);
 app.use('/api/friends', friendsRouter);
 app.use('/api/messages', messagesRouter);
 app.use('/api/direct-messages', directMessagesRouter);
-app.use('/api/scraper', scraperRouter);
 
 
 // Health Check

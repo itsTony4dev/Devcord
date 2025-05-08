@@ -24,11 +24,6 @@ A modern developer chat platform built with Node.js, Express, and MongoDB.
   - Express Validator for input validation
   - Swagger for API documentation
 
-- **Frontend:**
-  - React.js
-  - Tailwind CSS
-  - Socket.IO for real-time features
-
 ## Prerequisites
 
 - Node.js (v14 or higher)
@@ -148,13 +143,7 @@ yarn build
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
-
-For support, email support@devcord.com or join our Discord server.
-
 ## Acknowledgments
 
 - [Express.js](https://expressjs.com/)
 - [MongoDB](https://www.mongodb.com/)
-- [React](https://reactjs.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
