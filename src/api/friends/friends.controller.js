@@ -195,15 +195,34 @@ export const acceptFriendRequest = async (req, res) => {
 
     // Send real-time notification using Socket.IO
     const io = req.app.get("io");
-    const senderSocketId = io.userSocketMap[request.userId._id];
+    const friendsNamespace = io.of("/friends");
+    const friendsSocketMap = io.friendsUserSocketMap || {};
+    
+    // Get socket IDs for both users
+    const senderSocketId = friendsSocketMap[request.userId._id.toString()];
+    const receiverSocketId = friendsSocketMap[userId.toString()];
 
+    // Emit to the sender (person who sent the request)
     if (senderSocketId) {
-      io.to(senderSocketId).emit("friendRequestAccepted", {
+      friendsNamespace.to(senderSocketId).emit("friendRequestAccepted", {
         requestId: request._id,
-        user: {
+        receiver: {
           id: userId,
           username: user.username,
           avatar: user.avatar,
+        },
+        acceptedAt: new Date(),
+      });
+    }
+
+    // Emit to the receiver (person who accepted)
+    if (receiverSocketId) {
+      friendsNamespace.to(receiverSocketId).emit("friendRequestAccepted", {
+        requestId: request._id,
+        sender: {
+          id: request.userId._id,
+          username: request.userId.username,
+          avatar: request.userId.avatar,
         },
         acceptedAt: new Date(),
       });
@@ -235,7 +254,7 @@ export const declineFriendRequest = async (req, res) => {
       _id: requestId,
       friendId: userId,
       status: "pending",
-    });
+    }).populate("userId", "username avatar");
 
     if (!request) {
       return res.status(404).json({
@@ -245,18 +264,45 @@ export const declineFriendRequest = async (req, res) => {
     }
 
     // Store the sender ID before deleting
-    const senderId = request.userId;
+    const senderId = request.userId._id;
+
+    // Get user info for the real-time notification
+    const user = await User.findById(userId).select("username avatar");
 
     // Delete the request
     await Friends.findByIdAndDelete(requestId);
 
     // Send real-time notification using Socket.IO
     const io = req.app.get("io");
-    const senderSocketId = io.userSocketMap[senderId];
+    const friendsNamespace = io.of("/friends");
+    const friendsSocketMap = io.friendsUserSocketMap || {};
+    
+    // Get socket IDs for both users
+    const senderSocketId = friendsSocketMap[senderId.toString()];
+    const receiverSocketId = friendsSocketMap[userId.toString()];
 
+    // Emit to the sender (person who sent the request)
     if (senderSocketId) {
-      io.to(senderSocketId).emit("friendRequestDeclined", {
-        requestId,
+      friendsNamespace.to(senderSocketId).emit("friendRequestDeclined", {
+        requestId: request._id,
+        receiver: {
+          id: userId,
+          username: user.username,
+          avatar: user.avatar,
+        },
+        declinedAt: new Date(),
+      });
+    }
+
+    // Emit to the receiver (person who declined)
+    if (receiverSocketId) {
+      friendsNamespace.to(receiverSocketId).emit("friendRequestDeclined", {
+        requestId: request._id,
+        sender: {
+          id: request.userId._id,
+          username: request.userId.username,
+          avatar: request.userId.avatar,
+        },
         declinedAt: new Date(),
       });
     }
