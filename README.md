@@ -7,8 +7,6 @@ A modern developer chat platform built with Node.js, Express, and MongoDB.
 - 🔐 Secure authentication with JWT
 - 👥 Workspace management
 - 📨 Real-time messaging
-- 📝 Task management
-- 📁 File sharing
 - 🔍 User search and discovery
 - 👥 Friend system
 - 🛡️ Role-based access control
