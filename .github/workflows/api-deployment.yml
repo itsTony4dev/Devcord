@@ -41,7 +41,7 @@ jobs:
         NODE_ENV: test
         JWT_SECRET: test-secret
         EMAIL_USER: test@example.com
-        BACKEND_URL: http://localhost:3000
+        BACKEND_URL: http://localhost:3001
     
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
