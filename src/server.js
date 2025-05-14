@@ -46,6 +46,7 @@ app.use(
       }
     },
     credentials: true, // Enable credentials
+    allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
 app.use(helmet());

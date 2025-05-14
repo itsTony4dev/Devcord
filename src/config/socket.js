@@ -26,6 +26,7 @@ const io = new Server(server, {
       }
     },
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"]
   },
   pingTimeout: 60000, // Increase ping timeout for better connection stability
   connectTimeout: 30000, // Increase connection timeout
