@@ -30,6 +30,24 @@ export function initializeFriendsNamespace(io) {
         timestamp: new Date().toISOString()
       });
     });
+
+    // Block user event
+    socket.on("blockUser", ({ blockedId }) => {
+      console.log(`User ${socket.user.username} (${socket.user._id}) blocked user ${blockedId}`);
+      
+      // This event is primarily for logging purposes
+      // The actual blocking logic happens in the controller
+      // and real-time notifications are sent there
+    });
+
+    // Unblock user event
+    socket.on("unblockUser", ({ unblockedId }) => {
+      console.log(`User ${socket.user.username} (${socket.user._id}) unblocked user ${unblockedId}`);
+      
+      // This event is primarily for logging purposes
+      // The actual unblocking logic happens in the controller
+      // and real-time notifications are sent there
+    });
   });
 
   return friendsUserSocketMap;

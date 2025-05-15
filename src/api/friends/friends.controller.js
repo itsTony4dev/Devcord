@@ -436,6 +436,42 @@ export const blockUser = async (req, res) => {
 
     await blocked.save();
 
+    // Get user info for the real-time notification
+    const user = await User.findById(userId).select("username avatar");
+    const blockedUser = await User.findById(blockedId).select("username avatar");
+
+    // Send real-time notification using Socket.IO
+    const io = req.app.get("io");
+    const friendsNamespace = io.of("/friends");
+    const friendsSocketMap = io.friendsUserSocketMap || {};
+    
+    // Get socket IDs for both users
+    const blockerSocketId = friendsSocketMap[userId.toString()];
+    const blockedSocketId = friendsSocketMap[blockedId.toString()];
+
+    // Emit to the blocker (person who blocked)
+    if (blockerSocketId) {
+      friendsNamespace.to(blockerSocketId).emit("userBlocked", {
+        userId: blockedId,
+        username: blockedUser.username,
+        avatar: blockedUser.avatar,
+        blockedAt: new Date().toISOString(),
+      });
+    }
+
+    // Emit to the blocked person
+    if (blockedSocketId) {
+      friendsNamespace.to(blockedSocketId).emit("userBlockedYou", {
+        userId: userId,
+        username: user.username,
+        avatar: user.avatar,
+        blockedAt: new Date().toISOString(),
+      });
+    }
+
+    // Delete the direct message conversation
+    await DirectMessage.deleteConversation(userId, blockedId);
+
     res.status(200).json({
       success: true,
       message: "User blocked successfully",
@@ -467,6 +503,39 @@ export const unblockUser = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Blocked user not found",
+      });
+    }
+
+    // Get user info for the real-time notification
+    const user = await User.findById(userId).select("username avatar");
+    const unblockedUser = await User.findById(blockedId).select("username avatar");
+
+    // Send real-time notification using Socket.IO
+    const io = req.app.get("io");
+    const friendsNamespace = io.of("/friends");
+    const friendsSocketMap = io.friendsUserSocketMap || {};
+    
+    // Get socket IDs for both users
+    const unblockerSocketId = friendsSocketMap[userId.toString()];
+    const unblockedSocketId = friendsSocketMap[blockedId.toString()];
+
+    // Emit to the unblocker (person who unblocked)
+    if (unblockerSocketId) {
+      friendsNamespace.to(unblockerSocketId).emit("userUnblocked", {
+        userId: blockedId,
+        username: unblockedUser.username,
+        avatar: unblockedUser.avatar,
+        unblockedAt: new Date().toISOString(),
+      });
+    }
+
+    // Emit to the unblocked person
+    if (unblockedSocketId) {
+      friendsNamespace.to(unblockedSocketId).emit("userUnblockedYou", {
+        userId: userId,
+        username: user.username,
+        avatar: user.avatar,
+        unblockedAt: new Date().toISOString(),
       });
     }
 
