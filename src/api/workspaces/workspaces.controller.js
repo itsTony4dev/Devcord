@@ -492,28 +492,20 @@ export const leaveWorkspace = async (req, res) => {
         message: "You are not a member of this workspace",
       });
     }
-    if (
-      userWorkspace.role === "owner" ||
-      (userWorkspace.role === "admin" &&
-        (await UserWorkspace.countDocuments({
-          workspaceId: workspace._id,
-          role: "admin",
-        })) === 1)
-    ) {
+    if (userWorkspace.role === "owner") {
       return res.status(400).json({
         success: false,
-        message:
-          "You cannot leave this workspace as you are the only admin or owner",
+        message: "The owner cannot leave the workspace",
       });
     }
-    await userWorkspace.remove();
+    await UserWorkspace.deleteOne({ _id: userWorkspace._id });
     res.status(200).json({
       success: true,
       message: "You have left the workspace successfully",
     });
   } catch (error) {
     console.error("Error in leaveWorkspace controller:", error.message);
-    res.status(500).json({ success: false, messsage: "Internal server error" });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 

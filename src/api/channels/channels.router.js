@@ -4,11 +4,11 @@ import {
   getWorkspaceChannels,
   getChannelById,
   deleteChannel,
-  checkChannelAccess,
   addUserToPrivateChannel,
   removeUserFromPrivateChannel,
 } from "./channels.controller.js";
 import { validate } from "../../middleware/validate.js";
+import { checkChannelAccess } from "../../middleware/channelAccess.js";
 import {
   validateChannelId,
   validateCreateChannel,
@@ -69,12 +69,7 @@ const router = express.Router();
  *       500:
  *         description: Server error
  */
-router.post(
-  "/:workspaceId",
-  validateCreateChannel,
-  validate,
-  createChannel
-);
+router.post("/:workspaceId", validateCreateChannel, validate, createChannel);
 
 /**
  * @swagger

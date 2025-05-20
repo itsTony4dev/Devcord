@@ -63,7 +63,6 @@ export const sendDirectMessage = async (req, res) => {
       imageUrl = await cloudinary.uploader.upload(image);
       imageUrl = imageUrl.secure_url;
     }
-console.log("5aye jouxxx l2asle",imageUrl);
 
     // Create new direct message
     const newMessage = new DirectMessage({
@@ -106,7 +105,6 @@ console.log("5aye jouxxx l2asle",imageUrl);
     if (receiverSocketId) {
       io.of("/dm").to(receiverSocketId).emit("receiveDirectMessage", messageData);
     }
-console.log("5aye touxxx l2asle",messageData);
 
     res.status(201).json({
       success: true,
