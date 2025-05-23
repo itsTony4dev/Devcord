@@ -46,7 +46,7 @@ workspaceSchema.index({ createdBy: 1 });
 workspaceSchema.virtual("inviteUrl").get(function () {
   return `${
     process.env.FRONTEND_URL.split(",")[0] || "http://localhost:3000"
-  }/invite/${this.inviteCode}`;
+  }/invite/${this.inviteCode}?workspaceId=${this._id}`;
 });
 
 // Pre-save hook to ensure name is unique for a given user

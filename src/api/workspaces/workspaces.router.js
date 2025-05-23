@@ -387,6 +387,8 @@ workspacesRouter.post("/:id/invite", validateWorkspaceId, sendWorkspaceInvite);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+// This route bypasses the authenticate middleware to allow invitation links to work
+// The joinWorkspace function handles authentication via tokens in URL params if needed
 workspacesRouter.get("/:id/join/:inviteCode", joinWorkspace);
 
 /**

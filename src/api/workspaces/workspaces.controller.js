@@ -1,4 +1,5 @@
 import "dotenv/config";
+import jwt from "jsonwebtoken";
 
 import { Workspace, User, UserWorkspace, DirectMessage, Friends, Channel } from "../../models/index.js";
 
@@ -284,8 +285,13 @@ export const sendWorkspaceInvite = async (req, res) => {
           continue;
         }
 
-        // Create invitation message content
-        const content = `You've been invited to join the workspace "${workspace.workspaceName}". Use the invite code: ${workspace.inviteCode} or press the following link: ${process.env.BACKEND_URL}/api/workspaces/${workspace.id}/join/${workspace.inviteCode}`;
+        // Generate a token for the invited user
+        const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
+          expiresIn: "7d", 
+        });
+
+        // Create a link that works across environments
+        const content = `You've been invited to join the workspace "${workspace.workspaceName}". Use the invite code: ${workspace.inviteCode} or press the following link: ${process.env.BACKEND_URL}/api/workspaces/${workspace.id}/join/${workspace.inviteCode}?token=${token}`;
 
         // Create new direct message with workspace invitation
         const newMessage = new DirectMessage({
@@ -365,8 +371,37 @@ export const sendWorkspaceInvite = async (req, res) => {
 
 export const joinWorkspace = async (req, res) => {
   try {
-    const { inviteCode } = req.params;
-    const userId = req.user.id;
+    const { id, inviteCode } = req.params;
+    let userId;
+    
+    // Check if we have a user in the request (set by authenticate middleware)
+    if (req.user && req.user.id) {
+      userId = req.user.id;
+    } 
+    // If not, check for a token in query params 
+    else if (req.query.token) {
+      try {
+        const decoded = jwt.verify(req.query.token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.userId);
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            message: "User not found",
+          });
+        }
+        userId = user._id;
+      } catch (tokenError) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid or expired token",
+        });
+      }
+    } else {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
 
     // Find workspace by invite code
     const workspace = await Workspace.findOne({ inviteCode });
@@ -427,7 +462,7 @@ export const joinWorkspace = async (req, res) => {
     const io = req.app.get("io");
     
     // Get the user's socket ID if they are connected
-    const userSocketId = io.userSocketMap?.[userId.toString()];
+    const userSocketId = io?.userSocketMap?.[userId.toString()];
     
     // Send a real-time update to the user if they're online
     if (userSocketId) {
@@ -445,9 +480,20 @@ export const joinWorkspace = async (req, res) => {
       
       // Emit the event to the user with the workspace info
       io.of("/dm").to(userSocketId).emit("workspaceJoined", workspaceInfo);
-      
-      console.log(`Sent workspaceJoined event to user ${userId} (socket: ${userSocketId})`);
     }
+
+    // Generate token for continued session
+    const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
+      expiresIn: "15d",
+    });
+
+    // Set the token in a cookie for subsequent requests
+    res.cookie("jwt", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
+    });
 
     res.status(201).json({
       success: true,
@@ -457,6 +503,7 @@ export const joinWorkspace = async (req, res) => {
         name: workspace.workspaceName,
         description: workspace.description,
       },
+      token: token, // Include token in response for client-side storage
     });
   } catch (error) {
     console.error("Error in joinWorkspace controller:", error.message);
