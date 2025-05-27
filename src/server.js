@@ -24,6 +24,7 @@ import messagesRouter from './api/messages/messages.router.js';
 import directMessagesRouter from './api/directMessages/directMessages.router.js';
 import { io, app, server } from './config/socket.js';
 import scraperRouter from './api/scraper/scraper.router.js';
+import jobsRouter from './api/jobs/jobs.router.js';
 // Attach socket instance to app for access in controllers
 app.set('io', io);
 
@@ -60,6 +61,7 @@ app.use(errorHandler);
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/scraper', scraperRouter);
+app.use('/api/jobs', jobsRouter);
 app.use(authenticate);
 app.use('/api/users', usersRouter);
 app.use('/api/workspaces', workspacesRouter);
