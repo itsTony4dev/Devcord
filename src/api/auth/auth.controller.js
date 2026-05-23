@@ -7,7 +7,7 @@ import crypto from "crypto";
 
 import { User } from "../../models/index.js";
 import { generateToken } from "../../utils/security/generateToken.js";
-import transporter from "../../config/transporter.js";
+import { sendEmail } from "../../config/mail.js";
 import emailVerification from "../../utils/email/templates/emailVerification.js";
 import passwordResetConfirmationEmail from "../../utils/email/templates/passwordResetConfirmation.js";
 import passwordResetRequestEmail from "../../utils/email/templates/passwordResetRequest.js";
@@ -112,8 +112,7 @@ export const signup = async (req, res) => {
 
     const url = `${process.env.BACKEND_URL}/api/auth/verify/${token}`;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    await sendEmail({
       to: email,
       subject: "Email Verification",
       html: emailVerification(username, url),
@@ -303,9 +302,8 @@ export const resendVerificationEmail = async (req, res) => {
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1d",
     });
-    const url = `http://localhost:8000/api/auth/verify/${token}`;
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    const url = `${process.env.BACKEND_URL}/api/auth/verify/${token}`;
+    await sendEmail({
       to: email,
       subject: "Email Verification",
       html: emailVerification(user.username, url),
@@ -355,8 +353,7 @@ export const forgotPassword = async (req, res) => {
 
     const resetUrl = `${process.env.BACKEND_URL}/api/auth/reset-password?token=${token}`;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    await sendEmail({
       to: email,
       subject: "Password Reset Request",
       html: passwordResetRequestEmail(user.username, resetUrl),
@@ -518,8 +515,7 @@ export const changePassword = async (req, res) => {
       usedTokens.clear();
     }
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    await sendEmail({
       to: user.email,
       subject: "Password Reset Successful",
       html: passwordResetConfirmationEmail(user.username),

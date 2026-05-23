@@ -9,7 +9,9 @@ jest.mock('bcryptjs');
 jest.mock('jsonwebtoken');
 jest.mock('../../../models/index.js');
 jest.mock('../../../utils/security/generateToken.js');
-jest.mock('../../../config/transporter.js');
+jest.mock('../../../config/mail.js', () => ({
+  sendEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
+}));
 
 describe('Auth Controller', () => {
   let mockReq;
